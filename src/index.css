@@ -133,8 +133,34 @@ All colors MUST be HSL.
       color: black !important;
     }
     
+    /* Ensure PO fits on one page */
+    .max-w-4xl {
+      max-width: 100% !important;
+    }
+    
+    .p-6 {
+      padding: 0.5rem !important;
+    }
+    
+    .p-8 {
+      padding: 1rem !important;
+    }
+    
+    .mb-6 {
+      margin-bottom: 1rem !important;
+    }
+    
+    .space-y-4 > * + * {
+      margin-top: 0.75rem !important;
+    }
+    
+    .min-h-\\[100px\\] {
+      min-height: 60px !important;
+    }
+    
     @page {
       margin: 0.5in;
+      size: A4;
     }
   }
 }

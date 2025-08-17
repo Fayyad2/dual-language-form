@@ -132,7 +132,7 @@ const POForm = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header with back button */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 print:hidden">
           <div className="flex items-center gap-2">
             <Button 
               onClick={() => navigate('/')}
