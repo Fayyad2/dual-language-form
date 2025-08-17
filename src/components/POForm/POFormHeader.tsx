@@ -1,4 +1,5 @@
 import nmcLogo from "@/assets/nmc-logo.png";
+import { getCompanySettings } from "@/utils/poUtils";
 
 interface POFormHeaderProps {
   poNumber: string;
@@ -6,6 +7,8 @@ interface POFormHeaderProps {
 }
 
 export const POFormHeader = ({ poNumber, setPONumber }: POFormHeaderProps) => {
+  const settings = getCompanySettings();
+
   return (
     <div className="border-b border-form-border pb-6 mb-6">
       {/* Top Section */}
@@ -13,23 +16,22 @@ export const POFormHeader = ({ poNumber, setPONumber }: POFormHeaderProps) => {
         {/* Left Side - Company Info */}
         <div className="text-right" dir="rtl">
           <h2 className="text-lg font-bold text-corporate-blue mb-2">
-            شركة الجبل الشمالي للمقاولات
+            {settings.companyNameAr}
           </h2>
           <h3 className="text-base font-semibold text-foreground mb-2">
-            Northern Mountain Contracting Co.
+            {settings.companyNameEn}
           </h3>
           <div className="text-sm text-corporate-gray space-y-1">
-            <p>المملكة العربية السعودية – الرياض</p>
-            <p>Riyadh – KSA</p>
-            <p>Phone: 011-2397939</p>
+            <p>{settings.address}</p>
+            <p>{settings.phone}</p>
           </div>
         </div>
 
         {/* Right Side - Logo and Title */}
         <div className="text-center">
           <img 
-            src={nmcLogo} 
-            alt="Northern Mountain Contracting Logo" 
+            src={settings.logoUrl.startsWith('data:') ? settings.logoUrl : nmcLogo} 
+            alt="Company Logo" 
             className="h-16 w-auto mx-auto mb-4"
           />
           <h1 className="text-xl font-bold text-form-header mb-2">

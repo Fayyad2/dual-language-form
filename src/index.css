@@ -114,4 +114,27 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  @media print {
+    .print\\:hidden {
+      display: none !important;
+    }
+    
+    .print\\:shadow-none {
+      box-shadow: none !important;
+    }
+    
+    .print\\:border-none {
+      border: none !important;
+    }
+    
+    body {
+      background: white !important;
+      color: black !important;
+    }
+    
+    @page {
+      margin: 0.5in;
+    }
+  }
 }

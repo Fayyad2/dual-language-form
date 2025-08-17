@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -9,8 +9,11 @@ import { CustomizableTable } from "@/components/POForm/CustomizableTable";
 import { CostCenterTable } from "@/components/POForm/CostCenterTable";
 import { ApprovalSection } from "@/components/POForm/ApprovalSection";
 import { POFormFooter } from "@/components/POForm/POFormFooter";
+import { PrintButton } from "@/components/POForm/PrintButton";
+import { CompanySettingsDialog } from "@/components/Settings/CompanySettingsDialog";
 import { POData, TableField } from "@/types/po";
-import { Save, ArrowLeft } from "lucide-react";
+import { getNextPONumber } from "@/utils/poUtils";
+import { Save, ArrowLeft, Settings } from "lucide-react";
 
 const defaultTableFields: TableField[] = [
   { label: "Beneficiary Name المستفيد", value: "", type: "text" },
@@ -31,6 +34,15 @@ const POForm = () => {
   const [department, setDepartment] = useState("");
   const [purposeEnglish, setPurposeEnglish] = useState("");
   const [purposeArabic, setPurposeArabic] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [companySettingsKey, setCompanySettingsKey] = useState(0);
+
+  // Initialize PO number on component mount
+  useEffect(() => {
+    if (!poNumber) {
+      setPONumber(getNextPONumber());
+    }
+  }, []);
   
   // Cost center fields
   const [costCenter, setCostCenter] = useState("");
@@ -108,32 +120,55 @@ const POForm = () => {
     navigate('/');
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleSettingsChange = () => {
+    setCompanySettingsKey(prev => prev + 1);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto p-6">
         {/* Header with back button */}
         <div className="flex items-center justify-between mb-6">
-          <Button 
-            onClick={() => navigate('/')}
-            variant="outline"
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => navigate('/')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Button>
+            
+            <Button 
+              onClick={() => setSettingsOpen(true)}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          </div>
           
-          <Button 
-            onClick={handleSave}
-            className="flex items-center gap-2"
-          >
-            <Save className="h-4 w-4" />
-            Save PO
-          </Button>
+          <div className="flex items-center gap-2">
+            <PrintButton onClick={handlePrint} />
+            <Button 
+              onClick={handleSave}
+              className="flex items-center gap-2"
+            >
+              <Save className="h-4 w-4" />
+              Save PO
+            </Button>
+          </div>
         </div>
 
         {/* Main form content */}
-        <div className="bg-white rounded-lg shadow-sm border border-form-border p-8">
+        <div className="bg-white rounded-lg shadow-sm border border-form-border p-8 print:shadow-none print:border-none">
           <POFormHeader 
+            key={companySettingsKey}
             poNumber={poNumber}
             setPONumber={setPONumber}
           />
@@ -183,6 +218,12 @@ const POForm = () => {
 
           <POFormFooter />
         </div>
+        
+        <CompanySettingsDialog
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          onSettingsChange={handleSettingsChange}
+        />
       </div>
     </div>
   );

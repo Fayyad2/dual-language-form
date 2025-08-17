@@ -23,31 +23,39 @@ export const BilingualInput = ({
 
   const handleEnglishChange = async (value: string) => {
     onEnglishChange(value);
-    if (value.trim()) {
+    if (value.trim() && value !== arabicValue) {
       setIsTranslating(true);
       try {
         const translated = await TranslatorService.translateText(value, 'ar');
-        onArabicChange(translated);
+        if (translated !== value) {
+          onArabicChange(translated);
+        }
       } catch (error) {
         console.error('Translation error:', error);
       } finally {
         setIsTranslating(false);
       }
+    } else if (!value.trim()) {
+      onArabicChange('');
     }
   };
 
   const handleArabicChange = async (value: string) => {
     onArabicChange(value);
-    if (value.trim()) {
+    if (value.trim() && value !== englishValue) {
       setIsTranslating(true);
       try {
         const translated = await TranslatorService.translateText(value, 'en');
-        onEnglishChange(translated);
+        if (translated !== value) {
+          onEnglishChange(translated);
+        }
       } catch (error) {
         console.error('Translation error:', error);
       } finally {
         setIsTranslating(false);
       }
+    } else if (!value.trim()) {
+      onEnglishChange('');
     }
   };
 
