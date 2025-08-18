@@ -32,20 +32,23 @@ export const BilingualInput = ({
   };
 
   const handleTranslate = async () => {
-    if (englishValue.trim() && !arabicValue.trim()) {
+    const englishText = englishValue || '';
+    const arabicText = arabicValue || '';
+    
+    if (englishText.trim() && !arabicText.trim()) {
       setIsTranslating(true);
       try {
-        const translated = await TranslatorService.translateText(englishValue, 'ar');
+        const translated = await TranslatorService.translateText(englishText, 'ar');
         onArabicChange(translated);
       } catch (error) {
         console.error('Translation error:', error);
       } finally {
         setIsTranslating(false);
       }
-    } else if (arabicValue.trim() && !englishValue.trim()) {
+    } else if (arabicText.trim() && !englishText.trim()) {
       setIsTranslating(true);
       try {
-        const translated = await TranslatorService.translateText(arabicValue, 'en');
+        const translated = await TranslatorService.translateText(arabicText, 'en');
         onEnglishChange(translated);
       } catch (error) {
         console.error('Translation error:', error);
@@ -64,7 +67,7 @@ export const BilingualInput = ({
           variant="outline"
           size="sm"
           className="print:hidden flex items-center gap-2"
-          disabled={isTranslating || (!englishValue.trim() && !arabicValue.trim())}
+          disabled={isTranslating || (!(englishValue || '').trim() && !(arabicValue || '').trim())}
         >
           <Languages className="h-4 w-4" />
           {isTranslating ? "Translating..." : "Translate"}
@@ -78,7 +81,7 @@ export const BilingualInput = ({
             English
           </label>
           <Textarea
-            value={englishValue}
+            value={englishValue || ''}
             onChange={(e) => handleEnglishChange(e.target.value)}
             placeholder={`${placeholder} (English)`}
             className="min-h-[100px] text-left"
@@ -92,7 +95,7 @@ export const BilingualInput = ({
             العربية
           </label>
           <Textarea
-            value={arabicValue}
+            value={arabicValue || ''}
             onChange={(e) => handleArabicChange(e.target.value)}
             placeholder={`${placeholder} (Arabic)`}
             className="min-h-[100px] text-right"
