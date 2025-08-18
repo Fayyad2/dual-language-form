@@ -107,24 +107,22 @@ All colors MUST be HSL.
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
+  /* Removed invalid @apply on universal selector */
   body {
-    @apply bg-background text-foreground;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border-color: hsl(var(--border)); /* Apply border color to body if needed */
   }
 
   @media print {
-    .print\\:hidden {
+    /* Use valid CSS selectors for print styles */
+    [class*="print:hidden"] {
       display: none !important;
     }
-    
-    .print\\:shadow-none {
+    [class*="print:shadow-none"] {
       box-shadow: none !important;
     }
-    
-    .print\\:border-none {
+    [class*="print:border-none"] {
       border: none !important;
     }
     
@@ -165,7 +163,8 @@ All colors MUST be HSL.
       margin-top: 3mm !important;
     }
     
-    .min-h-\\[100px\\] {
+    /* Use a custom class for min-height instead of invalid selector */
+    .min-h-custom-print {
       min-height: 40px !important;
     }
     
@@ -185,7 +184,8 @@ All colors MUST be HSL.
       margin-bottom: 8px !important;
     }
     
-    .textarea {
+    /* Use element selector for textarea */
+    textarea, .textarea {
       min-height: 30px !important;
       font-size: 10px !important;
       padding: 2px 4px !important;
