@@ -57,7 +57,7 @@ export const CustomizableTable = ({ fields, onChange }: CustomizableTableProps) 
       <CardHeader className="pb-4">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-semibold">NMC Details Table</CardTitle>
-          <div className="flex gap-2">
+          <div className="flex gap-2 print:hidden">
             {!isCustomMode && (
               <Button 
                 onClick={enableCustomMode}
@@ -93,7 +93,7 @@ export const CustomizableTable = ({ fields, onChange }: CustomizableTableProps) 
       
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-table-border">
+          <table className="compact-table w-full border-collapse border border-table-border">
             <thead>
               <tr className="bg-table-header">
                 <th className="border border-table-border px-4 py-2 text-left font-medium">
@@ -103,7 +103,7 @@ export const CustomizableTable = ({ fields, onChange }: CustomizableTableProps) 
                   Value
                 </th>
                 {isCustomMode && (
-                  <th className="border border-table-border px-4 py-2 text-left font-medium w-20">
+                  <th className="border border-table-border px-4 py-2 text-left font-medium w-20 print:hidden">
                     Actions
                   </th>
                 )}
@@ -132,7 +132,7 @@ export const CustomizableTable = ({ fields, onChange }: CustomizableTableProps) 
                     />
                   </td>
                   {isCustomMode && (
-                    <td className="border border-table-border px-4 py-2">
+                    <td className="border border-table-border px-4 py-2 print:hidden">
                       <Button
                         onClick={() => removeField(index)}
                         variant="ghost"

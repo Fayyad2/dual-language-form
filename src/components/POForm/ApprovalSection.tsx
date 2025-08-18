@@ -28,7 +28,7 @@ export const ApprovalSection = ({ approvals, updateApproval }: ApprovalSectionPr
       
       <CardContent>
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse border border-table-border">
+          <table className="approval-table compact-table w-full border-collapse border border-table-border">
             <thead>
               <tr className="bg-table-header">
                 <th className="border border-table-border px-4 py-2 text-left font-medium">

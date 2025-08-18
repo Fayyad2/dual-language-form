@@ -166,7 +166,7 @@ const POForm = () => {
         </div>
 
         {/* Main form content */}
-        <div className="bg-white rounded-lg shadow-sm border border-form-border p-8 print:shadow-none print:border-none">
+        <div className="po-form-container bg-white rounded-lg shadow-sm border border-form-border p-8 print:shadow-none print:border-none">
           <POFormHeader 
             key={companySettingsKey}
             poNumber={poNumber}
@@ -182,16 +182,18 @@ const POForm = () => {
             setDate={setDate}
           />
 
-          <BilingualInput
-            englishValue={purposeEnglish}
-            arabicValue={purposeArabic}
-            onEnglishChange={setPurposeEnglish}
-            onArabicChange={setPurposeArabic}
-            label="PURPOSE"
-            placeholder="Describe the purpose of this payment order"
-          />
+          <div className="form-section">
+            <BilingualInput
+              englishValue={purposeEnglish}
+              arabicValue={purposeArabic}
+              onEnglishChange={setPurposeEnglish}
+              onArabicChange={setPurposeArabic}
+              label="PURPOSE"
+              placeholder="Describe the purpose of this payment order"
+            />
+          </div>
 
-          <div className="my-8">
+          <div className="form-section">
             <CustomizableTable
               fields={tableFields}
               onChange={setTableFields}
@@ -211,10 +213,12 @@ const POForm = () => {
             setLeftOver={setLeftOver}
           />
 
-          <ApprovalSection
-            approvals={approvals}
-            updateApproval={updateApproval}
-          />
+          <div className="approval-section">
+            <ApprovalSection
+              approvals={approvals}
+              updateApproval={updateApproval}
+            />
+          </div>
 
           <POFormFooter />
         </div>
