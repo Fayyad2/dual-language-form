@@ -1,27 +1,24 @@
 export class TranslatorService {
-  private static readonly API_KEY = 'XJKHEP4-4BQ4FDY-GP86B39-XXHH845';
-  private static readonly API_URL = 'https://api.lecto.ai/v1/translate/text';
+  // MyMemory API - completely free, no API key required
+  private static readonly API_URL = 'https://api.mymemory.translated.net/get';
 
-  // Main translation function using Lecto AI
+  // Main translation function using MyMemory API (free, no API key needed)
   static async translateText(text: string, targetLang: 'ar' | 'en'): Promise<string> {
     if (!text.trim()) return text;
 
     try {
-      const fromLang = targetLang === 'ar' ? 'en' : 'ar';
-      const toLang = targetLang;
+      const sourceLang = targetLang === 'ar' ? 'en' : 'ar';
+      
+      // Build the URL with parameters
+      const url = new URL(this.API_URL);
+      url.searchParams.append('q', text);
+      url.searchParams.append('langpair', `${sourceLang}|${targetLang}`);
 
-      const response = await fetch(this.API_URL, {
-        method: 'POST',
+      const response = await fetch(url.toString(), {
+        method: 'GET',
         headers: {
-          'X-API-Key': this.API_KEY,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          texts: [text],
-          to: [toLang],
-          from: fromLang
-        })
+          'Accept': 'application/json',
+        }
       });
 
       if (!response.ok) {
@@ -30,8 +27,8 @@ export class TranslatorService {
 
       const data = await response.json();
       
-      if (data.translations && data.translations.length > 0) {
-        return data.translations[0].text;
+      if (data.responseStatus === 200 && data.responseData?.translatedText) {
+        return data.responseData.translatedText;
       }
       
       throw new Error('No translation returned');
