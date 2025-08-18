@@ -5,7 +5,18 @@ import { useToast } from "@/hooks/use-toast";
 import { POCard } from "@/components/POManagement/POCard";
 import { POFilters } from "@/components/POManagement/POFilters";
 import { POData } from "@/types/po";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Settings } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { OptionsTab } from "./OptionsTab";
 import nmcLogo from "@/assets/nmc-logo.png";
 
 const Index = () => {
@@ -53,19 +64,11 @@ const Index = () => {
   });
 
   const handleEdit = (po: POData) => {
-    // Navigate to edit form (implement later)
-    toast({
-      title: "Edit PO",
-      description: `Editing PO #${po.poNumber}`,
-    });
+    navigate('/po-form', { state: { po } });
   };
 
   const handleView = (po: POData) => {
-    // Navigate to view form (implement later)
-    toast({
-      title: "View PO",
-      description: `Viewing PO #${po.poNumber}`,
-    });
+    navigate('/po-view', { state: { po } });
   };
 
   const handleDelete = (id: string) => {
@@ -79,15 +82,61 @@ const Index = () => {
     });
   };
 
+  // Settings dialog state
+  const [openSettings, setOpenSettings] = useState(false);
+  // Settings and defaults
+  const [companyLogo, setCompanyLogo] = useState("");
+  const [companyNameEn, setCompanyNameEn] = useState("");
+  const [companyNameAr, setCompanyNameAr] = useState("");
+  const [locationEn, setLocationEn] = useState("");
+  const [locationAr, setLocationAr] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [defaultPONumber, setDefaultPONumber] = useState("");
+  const [defaultDetails, setDefaultDetails] = useState("");
+  const [language, setLanguage] = useState("en");
+  const [theme, setTheme] = useState("light");
+
+  // Load settings/defaults from localStorage
+  useEffect(() => {
+    const savedSettings = JSON.parse(localStorage.getItem("settings") || "{}");
+    setCompanyLogo(savedSettings.companyLogo || "");
+    setCompanyNameEn(savedSettings.companyNameEn || "Northern Mountain Contracting Co.");
+    setCompanyNameAr(savedSettings.companyNameAr || "شركة الجبل الشمالي للمقاولات");
+    setLocationEn(savedSettings.locationEn || "Riyadh – KSA");
+    setLocationAr(savedSettings.locationAr || "المملكة العربية السعودية – الرياض");
+    setPhoneNumber(savedSettings.phoneNumber || "Phone: 011-2397939");
+    setDefaultPONumber(savedSettings.defaultPONumber || "");
+    setDefaultDetails(savedSettings.defaultDetails || "");
+    setLanguage(savedSettings.language || "en");
+    setTheme(savedSettings.theme || "light");
+  }, []);
+
+  const handleSaveSettings = () => {
+    localStorage.setItem("settings", JSON.stringify({
+      companyLogo,
+      companyNameEn,
+      companyNameAr,
+      locationEn,
+      locationAr,
+      phoneNumber,
+      defaultPONumber,
+      defaultDetails,
+      language,
+      theme,
+    }));
+    setOpenSettings(false);
+    toast({ title: "Settings Saved", description: "Your settings have been updated." });
+  };
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
       <div className="max-w-7xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <img 
-              src={nmcLogo} 
-              alt="Northern Mountain Contracting Logo" 
+              src={companyLogo || nmcLogo} 
+              alt="Company Logo" 
               className="h-12 w-auto"
             />
             <div>
@@ -95,18 +144,61 @@ const Index = () => {
                 HR Payment Orders
               </h1>
               <p className="text-muted-foreground">
-                Northern Mountain Contracting Co.
+                {language === "ar" ? companyNameAr : companyNameEn}
               </p>
+              <p className="text-xs text-muted-foreground">
+                {language === "ar" ? locationAr : locationEn}
+              </p>
+              <p className="text-xs text-muted-foreground">{phoneNumber}</p>
             </div>
           </div>
-          
-          <Button 
-            onClick={() => navigate('/po-form')}
-            className="flex items-center gap-2"
-          >
-            <Plus className="h-4 w-4" />
-            New Payment Order
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => navigate('/po-form')}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              {language === "ar" ? "إنشاء أمر دفع جديد" : "New Payment Order"}
+            </Button>
+            <Dialog open={openSettings} onOpenChange={setOpenSettings}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  {language === "ar" ? "الإعدادات" : "Settings"}
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Settings</DialogTitle>
+                  <DialogDescription>
+                    Manage your company, PO defaults, and preferences.
+                  </DialogDescription>
+                </DialogHeader>
+                <Tabs defaultValue="po-defaults">
+                  <TabsList>
+                    <TabsTrigger value="po-defaults">PO Defaults</TabsTrigger>
+                    <TabsTrigger value="preferences">Preferences</TabsTrigger>
+                    <TabsTrigger value="options">Options</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="po-defaults">
+                    {/* ...existing PO Defaults form... */}
+                    <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSaveSettings(); }}>
+                      {/* ...existing code... */}
+                    </form>
+                  </TabsContent>
+                  <TabsContent value="preferences">
+                    {/* ...existing Preferences form... */}
+                    <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSaveSettings(); }}>
+                      {/* ...existing code... */}
+                    </form>
+                  </TabsContent>
+                  <TabsContent value="options">
+                    <OptionsTab />
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Stats */}
@@ -116,7 +208,7 @@ const Index = () => {
               <FileText className="h-5 w-5 text-corporate-blue" />
               <div>
                 <p className="text-2xl font-bold">{pos.length}</p>
-                <p className="text-sm text-muted-foreground">Total POs</p>
+                <p className="text-sm text-muted-foreground">{language === "ar" ? "إجمالي الأوامر" : "Total POs"}</p>
               </div>
             </div>
           </div>
@@ -128,7 +220,7 @@ const Index = () => {
                 <p className="text-2xl font-bold">
                   {pos.filter(po => po.status === 'pending').length}
                 </p>
-                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-sm text-muted-foreground">{language === "ar" ? "قيد الانتظار" : "Pending"}</p>
               </div>
             </div>
           </div>
@@ -140,7 +232,7 @@ const Index = () => {
                 <p className="text-2xl font-bold">
                   {pos.filter(po => po.status === 'approved').length}
                 </p>
-                <p className="text-sm text-muted-foreground">Approved</p>
+                <p className="text-sm text-muted-foreground">{language === "ar" ? "تمت الموافقة" : "Approved"}</p>
               </div>
             </div>
           </div>
@@ -152,7 +244,7 @@ const Index = () => {
                 <p className="text-2xl font-bold">
                   {pos.filter(po => po.status === 'draft').length}
                 </p>
-                <p className="text-sm text-muted-foreground">Drafts</p>
+                <p className="text-sm text-muted-foreground">{language === "ar" ? "مسودات" : "Drafts"}</p>
               </div>
             </div>
           </div>

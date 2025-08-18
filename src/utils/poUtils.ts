@@ -27,6 +27,7 @@ export interface CompanySettings {
   address: string;
   phone: string;
   logoUrl: string;
+  locationOptions?: string[];
 }
 
 export const getCompanySettings = (): CompanySettings => {
@@ -35,7 +36,14 @@ export const getCompanySettings = (): CompanySettings => {
     companyNameAr: "شركة الجبل الشمالي للمقاولات",
     address: "Riyadh – KSA المملكة العربية السعودية – الرياض",
     phone: "Phone: 011-2397939",
-    logoUrl: "/src/assets/nmc-logo.png"
+    logoUrl: "/src/assets/nmc-logo.png",
+    locationOptions: [
+      "MAINTENANCE DEPARTMENT",
+      "PROJECTS DEPARTMENT",
+      "HR DEPARTMENT",
+      "FINANCE DEPARTMENT",
+      "OTHER"
+    ]
   };
   
   const saved = localStorage.getItem('companySettings');

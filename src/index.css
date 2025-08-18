@@ -115,99 +115,102 @@ All colors MUST be HSL.
   }
 
   @media print {
-    /* Use valid CSS selectors for print styles */
+    html, body {
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      background: white !important;
+      color: black !important;
+    }
     [class*="print:hidden"] {
       display: none !important;
     }
     [class*="print:shadow-none"] {
       box-shadow: none !important;
     }
-    [class*="print:border-none"] {
+    [class*="print:border-none"],
+    input,
+    textarea,
+    select {
       border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
     }
-    
-    body {
+    .po-form-container {
+      display: block !important;
+      height: auto !important;
+      overflow: visible !important;
+      position: relative !important;
       background: white !important;
       color: black !important;
+      page-break-after: avoid !important;
     }
-    
-    /* Logo as transparent background */
-    .po-form-container {
-      background-image: url('/src/assets/nmc-logo.png') !important;
-      background-repeat: no-repeat !important;
-      background-position: center !important;
-      background-size: 40% !important;
-      background-attachment: fixed !important;
-      opacity: 0.05 !important;
+    .print-watermark {
+      position: absolute !important;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%;
+      opacity: 0.08 !important;
+      pointer-events: none;
+      z-index: -1 !important;
+      background: transparent !important;
     }
-    
-    /* Compact A4 layout */
     .max-w-4xl {
       max-width: 100% !important;
       margin: 0 !important;
     }
-    
     .p-6 {
       padding: 10mm !important;
     }
-    
     .p-8 {
       padding: 5mm !important;
     }
-    
     .mb-6 {
       margin-bottom: 5mm !important;
     }
-    
     .space-y-4 > * + * {
       margin-top: 3mm !important;
     }
-    
-    /* Use a custom class for min-height instead of invalid selector */
     .min-h-custom-print {
       min-height: 40px !important;
     }
-    
-    /* Compact tables and forms */
     table {
       font-size: 11px !important;
     }
-    
     .compact-table td,
     .compact-table th {
       padding: 2px 4px !important;
       font-size: 10px !important;
     }
-    
-    /* Reduce spacing in form sections */
     .form-section {
       margin-bottom: 8px !important;
     }
-    
-    /* Use element selector for textarea */
     textarea, .textarea {
       min-height: 30px !important;
       font-size: 10px !important;
       padding: 2px 4px !important;
     }
-    
-    /* Approval section optimization */
     .approval-section {
       margin-top: 8px !important;
     }
-    
     .approval-table {
       font-size: 9px !important;
     }
-    
     .approval-table td {
       padding: 1px 2px !important;
       height: 25px !important;
     }
-    
     @page {
       margin: 10mm;
       size: A4;
+    }
+    .po-form-container * {
+      color: black !important;
+      background: transparent !important;
+      opacity: 1 !important;
+      page-break-inside: avoid !important;
     }
   }
 }
