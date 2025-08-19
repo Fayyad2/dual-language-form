@@ -1,0 +1,41 @@
+/* Hide print-attachments on screen, show in print */
+.screen-hidden {
+  display: none;
+}
+
+@media print {
+  .po-form-footer-img {
+    display: block !important;
+    page-break-inside: avoid;
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    margin: 0 auto;
+    z-index: 9999;
+    background: white;
+    padding-bottom: 8px;
+  }
+  .print-attachments {
+    display: block;
+  }
+  .screen-hidden {
+    display: block !important;
+  }
+  .print-attachment-page {
+    display: block;
+    page-break-before: always;
+    break-before: page;
+    width: 100vw;
+    min-height: 90vh;
+    background: white;
+    text-align: center;
+  }
+  /* Hide attachment previews in main form when printing */
+  input[type="file"], .print-attachments ~ div, .print-attachments ~ label {
+    display: none !important;
+  }
+}

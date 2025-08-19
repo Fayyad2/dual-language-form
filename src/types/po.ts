@@ -19,7 +19,8 @@ export interface POData {
   leftOver: string;
   customFields: { [key: string]: string };
   tags: string[];
-  status: 'draft' | 'pending' | 'approved' | 'completed';
+  status: 'draft' | 'pending' | 'approved' | 'completed' | 'declined' | 'review';
+  meta?: string;
   approvals: {
     hrOfficer: { signed: boolean; signature?: string; comments?: string };
     projectsManager: { signed: boolean; signature?: string; comments?: string };

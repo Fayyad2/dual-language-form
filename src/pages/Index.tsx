@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
+import AccountTypePicker, { AccountType } from "./AccountTypePicker";
+import FinanceApprovalBar from "@/components/POManagement/FinanceApprovalBar";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { POCard } from "@/components/POManagement/POCard";
 import { POFilters } from "@/components/POManagement/POFilters";
 import { POData } from "@/types/po";
+import { fetchAllPOsFromSupabase, deletePOFromSupabase } from '@/utils/poSupabase';
 import { Plus, FileText, Settings } from "lucide-react";
 import {
   Dialog,
@@ -21,6 +24,16 @@ import nmcLogo from "@/assets/nmc-logo.png";
 import { exportPOsToExcel } from "@/utils/excelExport";
 
 const Index = () => {
+  // Account type logic
+  const [accountType, setAccountType] = useState<AccountType | null>(null);
+  useEffect(() => {
+    const saved = localStorage.getItem("accountType");
+    if (saved === "hr" || saved === "finance") setAccountType(saved);
+  }, []);
+  const handlePickAccountType = (type: AccountType) => {
+    setAccountType(type);
+    localStorage.setItem("accountType", type);
+  };
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -29,10 +42,57 @@ const Index = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   
-  // Load POs from localStorage
+  // Load POs from Supabase
   useEffect(() => {
-    const savedPOs = JSON.parse(localStorage.getItem('pos') || '[]');
-    setPOs(savedPOs);
+    fetchAllPOsFromSupabase()
+      .then(data => {
+        // Map each record to POData type, provide defaults for missing fields if necessary
+        const mapped = (data || []).map((item: Record<string, any>) => ({
+          id: item.id ?? "",
+          poNumber: item.poNumber ?? "",
+          date: item.date ?? "",
+          location: item.location ?? "",
+          purposeEnglish: item.purposeEnglish ?? "",
+          purposeArabic: item.purposeArabic ?? "",
+          amount: item.amount ?? 0,
+          status: item.status ?? "draft",
+          tags: item.tags ?? [],
+          customFields: item.customFields ?? {},
+          meta: item.meta ?? "",
+          createdBy: item.createdBy ?? "",
+          createdAt: item.createdAt ?? "",
+          updatedAt: item.updatedAt ?? "",
+          // Required POData fields with sensible defaults
+          department: item.department ?? "",
+          beneficiaryName: item.beneficiaryName ?? "",
+          amountWords: item.amountWords ?? "",
+          paymentMethod: item.paymentMethod ?? "",
+          chequeNumber: item.chequeNumber ?? "",
+          chequeDate: item.chequeDate ?? "",
+          bankName: item.bankName ?? "",
+          iban: item.iban ?? "",
+          notes: item.notes ?? "",
+          attachments: item.attachments ?? [],
+          approvedBy: item.approvedBy ?? "",
+          reviewedBy: item.reviewedBy ?? "",
+          // Add missing required POData fields with sensible defaults
+          paymentType: item.paymentType ?? "",
+          timeToDeliver: item.timeToDeliver ?? "",
+          costCenter: item.costCenter ?? "",
+          totalBudget: item.totalBudget ?? 0,
+          remainingBudget: item.remainingBudget ?? 0,
+          projectName: item.projectName ?? "",
+          projectNumber: item.projectNumber ?? "",
+          supplierName: item.supplierName ?? "",
+          // Add missing POData fields with sensible defaults
+          totalConsumed: item.totalConsumed ?? 0,
+          appliedAmount: item.appliedAmount ?? 0,
+          leftOver: item.leftOver ?? 0,
+          approvals: item.approvals ?? [],
+        }));
+        setPOs(mapped);
+      })
+      .catch(() => setPOs([]));
   }, []);
 
   // Get all available tags
@@ -42,18 +102,16 @@ const Index = () => {
 
   // Filter POs
   const filteredPOs = pos.filter(po => {
+    // Finance can only see published (pending/approved/review) POs
+    if (accountType === "finance" && !["pending", "approved", "review"].includes(po.status)) return false;
     const matchesSearch = 
       po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (po.customFields?.["Beneficiary Name المستفيد"] || "")
         .toLowerCase().includes(searchTerm.toLowerCase()) ||
       po.purposeEnglish.toLowerCase().includes(searchTerm.toLowerCase()) ||
       po.purposeArabic.toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesStatus = statusFilter === "all" || po.status === statusFilter;
-    
-    const matchesTags = selectedTags.length === 0 || 
-      selectedTags.every(tag => po.tags?.includes(tag));
-    
+    const matchesTags = selectedTags.length === 0 || selectedTags.every(tag => po.tags?.includes(tag));
     return matchesSearch && matchesStatus && matchesTags;
   });
 
@@ -72,15 +130,22 @@ const Index = () => {
     navigate('/po-view', { state: { po } });
   };
 
-  const handleDelete = (id: string) => {
-    const updatedPOs = pos.filter(po => po.id !== id);
-    setPOs(updatedPOs);
-    localStorage.setItem('pos', JSON.stringify(updatedPOs));
-    
-    toast({
-      title: "PO Deleted",
-      description: "Payment order has been deleted successfully",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      await deletePOFromSupabase(id);
+      const updatedPOs = pos.filter(po => po.id !== id);
+      setPOs(updatedPOs);
+      toast({
+        title: "PO Deleted",
+        description: "Payment order has been deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete PO from Supabase",
+        variant: "destructive",
+      });
+    }
   };
 
   // Settings dialog state
@@ -111,8 +176,8 @@ const Index = () => {
   useEffect(() => {
     const savedSettings = JSON.parse(localStorage.getItem("settings") || "{}");
     setCompanyLogo(savedSettings.companyLogo || "");
-    setCompanyNameEn(savedSettings.companyNameEn || "Northern Mountain Contracting Co.");
-    setCompanyNameAr(savedSettings.companyNameAr || "شركة الجبل الشمالي للمقاولات");
+    setCompanyNameEn(savedSettings.companyNameEn || "Northern Mountains Contracting Co.");
+    setCompanyNameAr(savedSettings.companyNameAr || "شركة الجبال الشمالية للمقاولات");
     setLocationEn(savedSettings.locationEn || "Riyadh – KSA");
     setLocationAr(savedSettings.locationAr || "المملكة العربية السعودية – الرياض");
     setPhoneNumber(savedSettings.phoneNumber || "Phone: 011-2397939");
@@ -141,6 +206,11 @@ const Index = () => {
 
   // ...existing code...
 
+  if (!accountType) {
+    return <AccountTypePicker onPick={handlePickAccountType} />;
+  }
+  // Finance: restrict PO creation, show approve/decline bar
+  const isFinance = accountType === "finance";
   return (
     <div className="min-h-screen bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
       <div className="max-w-7xl mx-auto p-6">
@@ -166,19 +236,24 @@ const Index = () => {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              onClick={() => navigate('/po-form')}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              {language === "ar" ? "إنشاء أمر دفع جديد" : "New Payment Order"}
-            </Button>
+            {!isFinance && (
+              <Button 
+                onClick={() => navigate('/po-form')}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                {language === "ar" ? "إنشاء أمر دفع جديد" : "New Payment Order"}
+              </Button>
+            )}
             <Button
               variant="outline"
               className="flex items-center gap-2"
               onClick={async () => await exportPOsToExcel(pos)}
             >
               {language === "ar" ? "تصدير إلى إكسل" : "Export to Excel"}
+            </Button>
+            <Button variant="ghost" onClick={() => { localStorage.removeItem("accountType"); setAccountType(null); }}>
+              Switch Account Type
             </Button>
             <Dialog open={openSettings} onOpenChange={setOpenSettings}>
               <DialogTrigger asChild>
@@ -350,13 +425,38 @@ const Index = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {sortedPOs.map(po => (
-                <POCard
-                  key={po.id}
-                  po={po}
-                  onEdit={handleEdit}
-                  onView={handleView}
-                  onDelete={handleDelete}
-                />
+                <div key={po.id}>
+                  <POCard
+                    po={po}
+                    onEdit={handleEdit}
+                    onView={handleView}
+                    onDelete={handleDelete}
+                  />
+                  {/* Finance approval bar for finance users and pending/review POs */}
+                  {isFinance && ["pending", "review"].includes(po.status) && (
+                    <FinanceApprovalBar
+                      status={po.status}
+                      onApprove={async (transactionNumber: string) => {
+                        // Approve: set status to 'approved' and save transaction number in meta
+                        await fetch('/api/po-approve', { method: 'POST', body: JSON.stringify({ id: po.id, status: 'approved', transactionNumber }) });
+                        setPOs(pos => pos.map(p => p.id === po.id ? { ...p, status: 'approved', meta: JSON.stringify({ ...(po.meta ? JSON.parse(po.meta) : {}), transactionNumber }) } : p));
+                        toast({ title: 'PO Approved', description: 'The PO has been approved.' });
+                      }}
+                      onDecline={async () => {
+                        // Decline: set status to 'declined'
+                        await fetch('/api/po-approve', { method: 'POST', body: JSON.stringify({ id: po.id, status: 'declined' }) });
+                        setPOs(pos => pos.map(p => p.id === po.id ? { ...p, status: 'declined' } : p));
+                        toast({ title: 'PO Declined', description: 'The PO has been declined.' });
+                      }}
+                      onReview={async () => {
+                        // Send for review: set status to 'review'
+                        await fetch('/api/po-approve', { method: 'POST', body: JSON.stringify({ id: po.id, status: 'review' }) });
+                        setPOs(pos => pos.map(p => p.id === po.id ? { ...p, status: 'review' } : p));
+                        toast({ title: 'PO Sent for Review', description: 'The PO has been sent back to HR for review.' });
+                      }}
+                    />
+                  )}
+                </div>
               ))}
             </div>
           )}

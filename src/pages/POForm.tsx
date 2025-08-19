@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import "@/poform-print.css";
+import AccountTypePicker, { AccountType } from "./AccountTypePicker";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -11,66 +13,103 @@ import { CostCenterTable } from "@/components/POForm/CostCenterTable";
 import { ApprovalSection } from "@/components/POForm/ApprovalSection";
 import { POFormFooter } from "@/components/POForm/POFormFooter";
 import { PrintButton } from "@/components/POForm/PrintButton";
+import { PrintAttachmentsButton } from "@/components/POForm/PrintAttachmentsButton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DialogFooter } from "@/components/ui/dialog";
 import { DialogTrigger } from "@/components/ui/dialog";
 import React, { useRef } from "react";
 import nmcLogo from "@/assets/nmc-logo.png";
+import footerImg from "@/assets/fotter.png";
 import { CompanySettingsDialog } from "@/components/Settings/CompanySettingsDialog";
 import { POData, TableField } from "@/types/po";
-import { getNextPONumber } from "@/utils/poUtils";
+import { fetchAllPOsFromSupabase } from "@/utils/poSupabase";
+import { addPOToSupabase, updatePOInSupabase } from '@/utils/poSupabase';
+import { uploadAttachment } from '@/utils/uploadAttachment';
 import { Save, ArrowLeft, Settings } from "lucide-react";
+
+// For WordTable data
+function createInitialWordTable() {
+  return {
+    columns: [
+      { id: "col1", width: 120, name: "Column 1" },
+      { id: "col2", width: 120, name: "Column 2" },
+      { id: "col3", width: 120, name: "Column 3" },
+    ],
+    rows: [
+      { id: "row1", height: 32, cells: ["", "", ""] },
+      { id: "row2", height: 32, cells: ["", "", ""] },
+      { id: "row3", height: 32, cells: ["", "", ""] }
+    ]
+  };
+}
 
 const defaultTableFields: TableField[] = [
   { label: "Beneficiary Name المستفيد", value: "", type: "text" },
   { label: "Amount المبلغ", value: "", type: "text" },
   { label: "Payment Method طريقة الدفع", value: "", type: "text" },
   { label: "Payment Type نوع الدفع", value: "", type: "text" },
+  { label: "Other Field حقل آخر", value: "", type: "text" },
   { label: "Time to Deliver وقت التسليم", value: "", type: "text" }
 ];
 
-const POForm = () => {
-  // State for extra custom table
-  const [customColumns, setCustomColumns] = useState<CustomTableColumn[]>([
-    { id: "col1", name: "Column 1" },
-    { id: "col2", name: "Column 2" }
-  ]);
-  const [customRows, setCustomRows] = useState<CustomTableRow[]>([
-    { id: "row1", values: ["", ""] }
-  ]);
-  // PO type selection
-  const [poTypeDialogOpen, setPOTypeDialogOpen] = useState(true);
-  const [poType, setPOType] = useState<'normal' | 'extra-table' | null>(null);
 
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
 
-  // Detect edit mode
-  const editPO = location.state?.po;
-  const editPOId = editPO?.id || null;
+// Define missing types for custom table columns and rows
+type CustomTableColumn = {
+  id: string;
+  name: string;
+};
 
-  // Form state
+function POForm() {
+  // PO edit state
+  const [editPO, setEditPO] = useState<any>(null);
   const [poNumber, setPONumber] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [poLocation, setPOLocation] = useState("MAINTENANCE DEPARTMENT");
-  const [locationOptions, setLocationOptions] = useState<{ en: string; ar: string }[]>([]);
+  const [date, setDate] = useState("");
+  const [poLocation, setPOLocation] = useState("");
   const [department, setDepartment] = useState("");
   const [purposeEnglish, setPurposeEnglish] = useState("");
   const [purposeArabic, setPurposeArabic] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [companySettingsKey, setCompanySettingsKey] = useState(0);
-
-  // Cost center fields
   const [costCenter, setCostCenter] = useState("");
   const [totalBudget, setTotalBudget] = useState("");
   const [totalConsumed, setTotalConsumed] = useState("");
   const [appliedAmount, setAppliedAmount] = useState("");
   const [leftOver, setLeftOver] = useState("");
+  const [customColumns, setCustomColumns] = useState<any[]>([]);
+  const [customRows, setCustomRows] = useState<any[]>([]);
+  const [poType, setPOType] = useState("normal");
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [attachmentURLs, setAttachmentURLs] = useState<string[]>([]);
+  // Language and company info
+  const [language, setLanguage] = useState('en');
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [companyNameEn, setCompanyNameEn] = useState('');
+  const [companyNameAr, setCompanyNameAr] = useState('');
+  const [locationEn, setLocationEn] = useState('');
+  const [locationAr, setLocationAr] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  // Location options
+  const [locationOptions, setLocationOptions] = useState<{en: string, ar: string}[]>([]);
+  // Settings dialog
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // PO type dialog
+  const [poTypeDialogOpen, setPOTypeDialogOpen] = useState(false);
+  // Print ref
+  const printRef = useRef<HTMLDivElement>(null);
+  // Account type
+  const [accountType, setAccountType] = useState<string | null>(null);
+  // Handler stubs
+  const handlePickAccountType = () => {};
+  const handleAttachmentChange = () => {};
+  const handleDeleteAttachment = (idx: number) => {};
+  const handleSettingsChange = () => {};
 
+  // Toast and navigation
+  const { toast } = useToast();
+  const navigate = useNavigate();
   // Table fields
   const [tableFields, setTableFields] = useState<TableField[]>(defaultTableFields);
-
+  // WordTable data
+  const [wordTableData, setWordTableData] = useState(createInitialWordTable());
   // Approvals
   const [approvals, setApprovals] = useState({
     hrOfficer: { signed: false, signature: "", comments: "" },
@@ -84,23 +123,42 @@ const POForm = () => {
     if (editPO) {
       setPONumber(editPO.poNumber || "");
       setDate(editPO.date || new Date().toISOString().split('T')[0]);
-  setPOLocation(editPO.location || "MAINTENANCE DEPARTMENT");
+      setPOLocation(editPO.location || "MAINTENANCE DEPARTMENT");
       setDepartment(editPO.department || "");
       setPurposeEnglish(editPO.purposeEnglish || "");
-      setPurposeArabic(editPO.purposeArabic || "");
-      setCostCenter(editPO.costCenter || "");
-      setTotalBudget(editPO.totalBudget || "");
-      setTotalConsumed(editPO.totalConsumed || "");
-      setAppliedAmount(editPO.appliedAmount || "");
-      setLeftOver(editPO.leftOver || "");
-      if (editPO.customFields) {
-        const fields = defaultTableFields.map(f => ({ ...f, value: editPO.customFields[f.label] || "" }));
-        setTableFields(fields);
+
+      // Restore extra details from meta column if present
+      let meta: any = {};
+      if (editPO.meta) {
+        try {
+          meta = JSON.parse(editPO.meta);
+        } catch (e) {
+          meta = {};
+        }
       }
-      if (editPO.approvals) setApprovals(editPO.approvals);
+      setPurposeArabic(meta?.purposeArabic || "");
+      setCostCenter(meta?.costCenter || "");
+      setTotalBudget(meta?.totalBudget || "");
+      setTotalConsumed(meta?.totalConsumed || "");
+      setAppliedAmount(meta?.appliedAmount || "");
+      setLeftOver(meta?.leftOver || "");
+      if (meta?.tableFields) {
+        setTableFields(meta.tableFields);
+      }
+      if (meta?.approvals) setApprovals(meta.approvals);
+      if (meta?.customColumns) setCustomColumns(meta.customColumns);
+      if (meta?.customRows) setCustomRows(meta.customRows);
+      if (meta?.poType) setPOType(meta.poType);
+      if (meta?.wordTableData) {
+        setWordTableData(meta.wordTableData);
+      }
+      // Load saved attachments (Supabase URLs)
+      if (meta?.attachments && Array.isArray(meta.attachments)) {
+        setAttachments(meta.attachments.map((url: string) => ({ url })));
+      }
     } else {
-  setPONumber(getNextPONumber());
-  setPOLocation("MAINTENANCE DEPARTMENT");
+      setPOLocation("MAINTENANCE DEPARTMENT");
+      setWordTableData(createInitialWordTable());
     }
   }, []);
 
@@ -117,7 +175,7 @@ const POForm = () => {
   // Save dialog state
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
 
-  const handleSave = (type: 'draft' | 'pending') => {
+  const handleSave = async (type: 'draft' | 'pending') => {
     if (!poNumber.trim()) {
       toast({
         title: language === 'ar' ? 'خطأ في التحقق' : 'Validation Error',
@@ -125,81 +183,71 @@ const POForm = () => {
         variant: "destructive"
       });
       return;
+    // ...
+    // Upload new attachments to Supabase Storage and get URLs, keep existing URLs
+    let attachmentUrls: string[] = [];
+    if (attachments.length) {
+      try {
+        const uploadResults = await Promise.all(
+          attachments.map(att =>
+            att.file ? uploadAttachment(att.file, poNumber) : att.url
+          )
+        );
+        attachmentUrls = uploadResults;
+      } catch (err) {
+        toast({
+          title: 'Attachment Upload Error',
+          description: 'Failed to upload one or more attachments.',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
-    const poData: Partial<POData> = {
-      poNumber,
-      date,
-      location: poLocation,
-      department,
-      purposeEnglish,
+    // Save all extra details in a 'meta' column as JSON string
+    const meta = {
       purposeArabic,
       costCenter,
       totalBudget,
       totalConsumed,
       appliedAmount,
       leftOver,
-      customFields: tableFields.reduce((acc, field) => {
-        acc[field.label] = field.value;
-        return acc;
-      }, {} as { [key: string]: string }),
+      tableFields,
       approvals,
-      status: type,
-      tags: []
+      customColumns,
+      customRows,
+      poType,
+      wordTableData,
+      attachments: attachmentUrls,
     };
-    const savedPOs = JSON.parse(localStorage.getItem('pos') || '[]');
-    if (editPOId) {
-      // Update existing PO
-      const idx = savedPOs.findIndex((p: any) => p.id === editPOId);
-      if (idx !== -1) {
-        savedPOs[idx] = { ...savedPOs[idx], ...poData, id: editPOId };
-        localStorage.setItem('pos', JSON.stringify(savedPOs));
-        toast({
-          title: language === 'ar' ? 'تم التحديث بنجاح' : 'Success',
-          description: language === 'ar' ? (type === 'pending' ? 'تم نشر أمر الدفع بنجاح' : 'تم حفظ أمر الدفع كمسودة') : (type === 'pending' ? 'PO published successfully' : 'PO saved as draft'),
-        });
-        navigate('/');
-        return;
-      }
+    const poData = {
+      id: (editPO?.id || Date.now().toString()) + '',
+      poNumber: (poNumber || '') + '',
+      date: (date || '') + '',
+      location: (poLocation || '') + '',
+      department: (department || '') + '',
+      purposeEnglish: (purposeEnglish || '') + '',
+      status: (type === 'pending' ? 'pending' : 'draft') + '',
+      meta: JSON.stringify(meta) || '',
+    };
+    console.log('DEBUG: Payload to Supabase:', JSON.stringify(poData, null, 2));
+    try {
+
+      console.log('Saving PO to Supabase:', poData);
+    } catch (error) {
+      toast({
+        title: language === 'ar' ? 'خطأ' : 'Error',
+        description: language === 'ar' ? 'فشل الحفظ في Supabase' : 'Failed to save to Supabase',
+        variant: 'destructive',
+      });
     }
-    // Create new PO
-    const newPO = {
-      ...poData,
-      id: Date.now().toString(),
-    };
-    savedPOs.push(newPO);
-    localStorage.setItem('pos', JSON.stringify(savedPOs));
-    toast({
-      title: language === 'ar' ? 'تم الحفظ بنجاح' : 'Success',
-      description: language === 'ar' ? (type === 'pending' ? 'تم نشر أمر الدفع بنجاح' : 'تم حفظ أمر الدفع كمسودة') : (type === 'pending' ? 'PO published successfully' : 'PO saved as draft'),
-    });
-    navigate('/');
   };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleSettingsChange = () => {
-    setCompanySettingsKey(prev => prev + 1);
-  };
-
-  const printRef = useRef<HTMLDivElement>(null);
-
-  // Load company defaults from localStorage
-  const [language, setLanguage] = useState("en");
-  const [companyLogo, setCompanyLogo] = useState("");
-  const [companyNameEn, setCompanyNameEn] = useState("");
-  const [companyNameAr, setCompanyNameAr] = useState("");
-  const [locationEn, setLocationEn] = useState("");
-  const [locationAr, setLocationAr] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
 
   useEffect(() => {
     const savedSettings = JSON.parse(localStorage.getItem("settings") || "{}");
     setLanguage(savedSettings.language || "en");
     setCompanyLogo(savedSettings.companyLogo || nmcLogo);
-    setCompanyNameEn(savedSettings.companyNameEn || "Northern Mountain Contracting Co.");
-    setCompanyNameAr(savedSettings.companyNameAr || "شركة الجبل الشمالي للمقاولات");
+    setCompanyNameEn(savedSettings.companyNameEn || "Northern Mountains Contracting Co.");
+    setCompanyNameAr(savedSettings.companyNameAr || "شركة الجبال الشمالية للمقاولات");
     setLocationEn(savedSettings.locationEn || "Riyadh – KSA");
     setLocationAr(savedSettings.locationAr || "المملكة العربية السعودية – الرياض");
     setPhoneNumber(savedSettings.phoneNumber || "Phone: 011-2397939");
@@ -218,6 +266,26 @@ const POForm = () => {
     }
   }, []);
 
+  if (!accountType) {
+    return <AccountTypePicker onPick={handlePickAccountType} />;
+  }
+  // Only HR can create/edit POs
+  if (accountType === "finance") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <div className="bg-white p-8 rounded shadow-md w-96 flex flex-col gap-6">
+          <h2 className="text-xl font-bold text-center">Finance Account</h2>
+          <p className="text-center">You can only view and approve/decline published POs.</p>
+          <Button onClick={() => { localStorage.removeItem("accountType"); setAccountType(null); }}>Switch Account Type</Button>
+        {/* Footer image */}
+        <div style={{ width: '100%', marginTop: 32 }}>
+          <img src={footerImg} alt="Footer" style={{ width: '100%', maxWidth: '100%', height: 'auto', objectFit: 'contain', display: 'block' }} />
+        </div>
+        </div>
+      </div>
+    );
+  }
+  // HR view (default)
   return (
     <div className="min-h-screen bg-background">
       {/* PO Type Selection Dialog */}
@@ -246,7 +314,6 @@ const POForm = () => {
               <ArrowLeft className="h-4 w-4" />
               Back to Dashboard
             </Button>
-            
             <Button 
               onClick={() => setSettingsOpen(true)}
               variant="outline"
@@ -255,10 +322,11 @@ const POForm = () => {
               <Settings className="h-4 w-4" />
               Settings
             </Button>
+
           </div>
-          
           <div className="flex items-center gap-2">
             <PrintButton printRef={printRef} />
+            <PrintAttachmentsButton attachments={attachments} attachmentURLs={attachmentURLs} />
             <Dialog open={saveDialogOpen} onOpenChange={setSaveDialogOpen}>
               <DialogTrigger asChild>
                 <Button className="flex items-center gap-2">
@@ -288,8 +356,8 @@ const POForm = () => {
           </div>
         </div>
 
-        {/* Main form content - optimized for print and layout */}
-        <div ref={printRef} className="po-form-container bg-white border border-form-border p-8 print:shadow-none print:border-none" style={{ position: 'relative', fontFamily: 'Arial, sans-serif', fontSize: '12px', maxWidth: '800px', margin: '0 auto', background: 'white' }}>
+  {/* Main form content - optimized for print and layout */}
+  <div ref={printRef} className="po-form-container bg-white border border-form-border p-8 print:shadow-none print:border-none" style={{ position: 'relative', fontFamily: 'Arial, sans-serif', fontSize: '12px', maxWidth: '800px', margin: '0 auto', background: 'white' }}>
           {/* Transparent logo background for print */}
           <img src={companyLogo || nmcLogo} alt="Watermark" className="print-watermark" style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '70%', opacity: 0.08, pointerEvents: 'none', zIndex: 0 }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
@@ -301,7 +369,7 @@ const POForm = () => {
             </div>
             {/* Top Right Section */}
             <div style={{ textAlign: 'right', maxWidth: '40%' }}>
-              <img src={companyLogo || nmcLogo} alt="Logo" style={{ height: '40px', marginBottom: '2px' }} />
+              <img src={companyLogo || nmcLogo} alt="Logo" style={{ height: '64px', marginBottom: '2px' }} />
               <div style={{ fontWeight: 'bold', fontSize: '15px', marginBottom: '2px' }}>HR PAYMENT ORDER</div>
               <div style={{ fontSize: '12px' }}>
                 P.O. (<input type="text" value={poNumber} onChange={e => setPONumber(e.target.value)} style={{ width: '80px', fontSize: '12px', border: '1px solid #888', borderRadius: '3px', padding: '2px', textAlign: 'center' }} />)
@@ -344,8 +412,9 @@ const POForm = () => {
               <textarea
                 value={purposeEnglish}
                 onChange={e => setPurposeEnglish(e.target.value)}
-                style={{ fontSize: '12px', minHeight: '32px', border: '1px solid #888', padding: '4px', background: '#fafafa', width: '100%', resize: 'vertical' }}
+                style={{ fontSize: '12px', minHeight: '32px', border: '1px solid #888', padding: '4px', background: '#fafafa', width: '100%', resize: 'vertical', direction: 'ltr' }}
                 placeholder="Enter purpose in English"
+                dir="ltr"
               />
               <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>Files attached</div>
             </div>
@@ -354,8 +423,9 @@ const POForm = () => {
               <textarea
                 value={purposeArabic}
                 onChange={e => setPurposeArabic(e.target.value)}
-                style={{ fontSize: '12px', minHeight: '32px', border: '1px solid #888', padding: '4px', background: '#fafafa', width: '100%', resize: 'vertical' }}
+                style={{ fontSize: '12px', minHeight: '32px', border: '1px solid #888', padding: '4px', background: '#fafafa', width: '100%', resize: 'vertical', direction: 'rtl' }}
                 placeholder="ادخل الوصف بالعربية"
+                dir="rtl"
               />
               <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>الملفات مرفقة</div>
               {/* Auto-translate button, hidden during print */}
@@ -379,10 +449,10 @@ const POForm = () => {
               >Translate</button>
             </div>
           </div>
-          {/* NMC Details Table */}
+
           {/* Conditional table rendering based on PO type */}
           {poType === 'extra-table' && (
-            <WordTable />
+            <WordTable value={wordTableData} onChange={setWordTableData} />
           )}
           {/* NMC Details Table - fully restored with all fields, editable values only */}
           <table className="compact-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px', fontSize: '11px' }}>
@@ -445,11 +515,18 @@ const POForm = () => {
               </tr>
               <tr>
                 <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Time to Deliver<br /><span style={{ fontWeight: 'normal' }}>وقت التسليم</span></td>
-                <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={tableFields[5]?.value || ''} onChange={e => {
-                  const newFields = [...tableFields];
-                  if (newFields[5]) newFields[5].value = e.target.value;
-                  setTableFields(newFields);
-                }} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
+                <td style={{ border: '1px solid #888', padding: '4px' }}>
+                  <input
+                    type="date"
+                    value={tableFields[5]?.value || ''}
+                    onChange={e => {
+                      const newFields = [...tableFields];
+                      if (newFields[5]) newFields[5].value = e.target.value;
+                      setTableFields(newFields);
+                    }}
+                    style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }}
+                  />
+                </td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}></td>
               </tr>
@@ -492,8 +569,110 @@ const POForm = () => {
               </tr>
             </tbody>
           </table>
+
+        {/* Footer image for the PO form (not for popups) - moved inside po-form-container for printing */}
+        <div className="po-form-footer-img" style={{ width: '100%', marginTop: 24, marginBottom: 8, textAlign: 'center' }}>
+          <img src={footerImg} alt="Footer" style={{ width: '100%', maxWidth: 600, height: 'auto', objectFit: 'contain', display: 'inline-block' }} />
         </div>
-        
+      </div>
+      {/* Attachments Section - below the form */}
+      <div style={{ maxWidth: 800, margin: '32px auto 0 auto', padding: 16, background: '#f9f9f9', borderRadius: 8, border: '1px solid #e0e0e0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 12 }}>
+          <label style={{ fontWeight: 'bold', fontSize: 15, marginRight: 16 }}>Attachments</label>
+          <button
+            type="button"
+            onClick={() => document.getElementById('attachment-input')?.click()}
+            style={{
+              background: '#2563eb', color: 'white', border: 'none', borderRadius: 6, padding: '8px 18px', fontWeight: 600, fontSize: 15, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6
+            }}
+          >
+            <span style={{ fontSize: 20, fontWeight: 700, marginRight: 4 }}>+</span> Add Attachment
+          </button>
+          <input
+            id="attachment-input"
+            type="file"
+            multiple
+            accept=".pdf,image/png,image/jpeg,image/jpg,image/webp,image/gif,image/bmp,image/svg+xml"
+            onChange={handleAttachmentChange}
+            style={{ display: 'none' }}
+          />
+        </div>
+        {/* Always-visible attachment viewer (not shown in print) */}
+        <div
+          className="print:hidden"
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 18,
+            marginTop: 8,
+            maxHeight: 180,
+            overflowX: 'auto',
+            overflowY: 'auto',
+            border: attachments.length ? '1px solid #e0e0e0' : undefined,
+            borderRadius: 8,
+            background: attachments.length ? '#f6f8fa' : undefined,
+            padding: attachments.length ? 12 : 0
+          }}
+        >
+          {attachments.length === 0 && (
+            <div style={{ color: '#888', fontSize: 13, padding: 12 }}>No attachments added yet.</div>
+          )}
+          {attachments.map((file, idx) => {
+            const url = attachmentURLs[idx];
+            return (
+              <div key={idx} style={{ textAlign: 'center', background: '#fff', border: '1px solid #ddd', borderRadius: 6, padding: 8, minWidth: 120, position: 'relative', boxShadow: '0 1px 4px #0001' }}>
+                {file.type.startsWith('image/') ? (
+                  <img src={url} alt={file.name} style={{ maxWidth: 100, maxHeight: 100, border: '1px solid #ccc', borderRadius: 4 }} />
+                ) : file.type === 'application/pdf' ? (
+                  <span style={{ fontSize: 32 }}>📄</span>
+                ) : (
+                  <span style={{ fontSize: 32 }}>📎</span>
+                )}
+                <div style={{ fontSize: 11, marginTop: 4, wordBreak: 'break-all' }}>{file.name}</div>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteAttachment(idx)}
+                  style={{ position: 'absolute', top: 4, right: 4, background: '#ef4444', color: 'white', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', fontWeight: 700, fontSize: 14, lineHeight: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  title="Delete attachment"
+                >×</button>
+              </div>
+            );
+          })}
+        </div>
+        {/* Print-only: Attachments on separate pages, minimal design */}
+        {attachments.map((att, idx) => {
+          const url = att.url;
+          const ext = url.split('.').pop()?.toLowerCase();
+          const isImage = att.file ? att.file.type.startsWith('image/') : /(jpg|jpeg|png|gif|webp|bmp|svg)$/i.test(ext || '');
+          const isPDF = att.file ? att.file.type === 'application/pdf' : ext === 'pdf';
+          return (
+            <div
+              key={idx}
+              className="print-attachment-page"
+              style={{
+                pageBreakBefore: 'always',
+                textAlign: 'center',
+                margin: '0 auto',
+                maxWidth: 800,
+                background: 'white',
+                padding: 48,
+              }}
+            >
+              <div style={{ fontWeight: 'bold', fontSize: 20, marginBottom: 24, color: '#2563eb' }}>
+                Attachment: {att.file?.name || url.split('/').pop()}
+              </div>
+              {isImage ? (
+                <img src={url} alt={att.file?.name || url.split('/').pop()} style={{ maxWidth: '90vw', maxHeight: '80vh', border: '1px solid #ccc', borderRadius: 4 }} />
+              ) : isPDF ? (
+                <object data={url} type="application/pdf" width="90%" height="700px">
+                  <a href={url} target="_blank" rel="noopener noreferrer">{att.file?.name || url.split('/').pop()}</a>
+                </object>
+              ) : (
+                <div style={{ fontSize: 48, color: '#888' }}>📎</div>
+              )}
+            </div>
+          );
+        })}
         <CompanySettingsDialog
           open={settingsOpen}
           onOpenChange={setSettingsOpen}
@@ -501,7 +680,8 @@ const POForm = () => {
         />
       </div>
     </div>
+  </div>
   );
-};
+};}
 
 export default POForm;

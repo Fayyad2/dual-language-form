@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import './WordTable.css';
 
 // Table model: rows, columns, cell content, column widths, row heights
@@ -20,8 +20,17 @@ function createInitialTable(cols = 3, rows = 3) {
   };
 }
 
-export default function WordTable() {
-  const [table, setTable] = useState(createInitialTable());
+/**
+ * Props:
+ * - value: table data (optional, for controlled usage)
+ * - onChange: callback when table data changes (for controlled usage)
+ */
+export default function WordTable({ value, onChange }: {
+  value?: any,
+  onChange?: (table: any) => void
+}) {
+  const isControlled = value !== undefined && onChange !== undefined;
+  const [table, setTable] = useState(value || createInitialTable());
   const [hoveredCol, setHoveredCol] = useState(null);
   const [hoveredRow, setHoveredRow] = useState(null);
   const [resizing, setResizing] = useState(null); // { type, idx, startX, startY, startWidth, startHeight }
@@ -32,7 +41,7 @@ export default function WordTable() {
 
   // Insert column at idx
   const insertCol = idx => {
-    setTable(prev => {
+    const updater = prev => {
       const newCol = { id: `col${Date.now()}`, width: 120, name: "New Column" };
       const columns = [...prev.columns];
       columns.splice(idx, 0, newCol);
@@ -41,12 +50,17 @@ export default function WordTable() {
         cells: [...row.cells.slice(0, idx), "", ...row.cells.slice(idx)],
       }));
       return { columns, rows };
-    });
+    };
+    if (isControlled) {
+      onChange(updater(table));
+    } else {
+      setTable(updater);
+    }
   };
 
   // Insert row at idx
   const insertRow = idx => {
-    setTable(prev => {
+    const updater = prev => {
       const newRow = {
         id: `row${Date.now()}`,
         height: 32,
@@ -55,7 +69,12 @@ export default function WordTable() {
       const rows = [...prev.rows];
       rows.splice(idx, 0, newRow);
       return { columns: prev.columns, rows };
-    });
+    };
+    if (isControlled) {
+      onChange(updater(table));
+    } else {
+      setTable(updater);
+    }
   };
 
   // Resize column
@@ -72,25 +91,35 @@ export default function WordTable() {
   };
 
   // Mouse move for resizing
-  React.useEffect(() => {
+  useEffect(() => {
     if (!resizing) return;
     const onMove = e => {
       if (resizing.type === "col") {
         const dx = e.clientX - resizing.startX;
-        setTable(prev => {
+        const updater = prev => {
           const columns = [...prev.columns];
           const newWidth = Math.max(MIN_COL_WIDTH, resizing.startWidth + dx);
           columns[resizing.idx] = { ...columns[resizing.idx], width: newWidth };
           return { ...prev, columns };
-        });
+        };
+        if (isControlled) {
+          onChange(updater(table));
+        } else {
+          setTable(updater);
+        }
       } else if (resizing.type === "row") {
         const dy = e.clientY - resizing.startY;
-        setTable(prev => {
+        const updater = prev => {
           const rows = [...prev.rows];
           const newHeight = Math.max(MIN_ROW_HEIGHT, resizing.startHeight + dy);
           rows[resizing.idx] = { ...rows[resizing.idx], height: newHeight };
           return { ...prev, rows };
-        });
+        };
+        if (isControlled) {
+          onChange(updater(table));
+        } else {
+          setTable(updater);
+        }
       }
     };
     const onUp = () => setResizing(null);
@@ -100,17 +129,30 @@ export default function WordTable() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [resizing, table.columns, table.rows]);
+    // eslint-disable-next-line
+  }, [resizing, table, isControlled, onChange]);
 
   // Edit cell
   const editCell = (rowIdx, colIdx, value) => {
-    setTable(prev => {
+    const updater = prev => {
       const rows = [...prev.rows];
       rows[rowIdx] = { ...rows[rowIdx], cells: [...rows[rowIdx].cells] };
       rows[rowIdx].cells[colIdx] = value;
       return { ...prev, rows };
-    });
+    };
+    if (isControlled) {
+      onChange(updater(table));
+    } else {
+      setTable(updater);
+    }
   };
+  // Keep internal state in sync with value prop if controlled
+  useEffect(() => {
+    if (isControlled) {
+      setTable(value);
+    }
+    // eslint-disable-next-line
+  }, [value]);
 
   // Select cell (click or drag)
   const handleCellMouseDown = (rowIdx, colIdx, e) => {
