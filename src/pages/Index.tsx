@@ -18,6 +18,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OptionsTab } from "./OptionsTab";
 import nmcLogo from "@/assets/nmc-logo.png";
+import { exportPOsToExcel } from "@/utils/excelExport";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -96,6 +97,16 @@ const Index = () => {
   const [language, setLanguage] = useState("en");
   const [theme, setTheme] = useState("light");
 
+  // Apply dark theme to html element
+  useEffect(() => {
+    const html = document.documentElement;
+    if (theme === "dark") {
+      html.classList.add("dark");
+    } else {
+      html.classList.remove("dark");
+    }
+  }, [theme]);
+
   // Load settings/defaults from localStorage
   useEffect(() => {
     const savedSettings = JSON.parse(localStorage.getItem("settings") || "{}");
@@ -127,6 +138,8 @@ const Index = () => {
     setOpenSettings(false);
     toast({ title: "Settings Saved", description: "Your settings have been updated." });
   };
+
+  // ...existing code...
 
   return (
     <div className="min-h-screen bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
@@ -160,6 +173,13 @@ const Index = () => {
               <Plus className="h-4 w-4" />
               {language === "ar" ? "إنشاء أمر دفع جديد" : "New Payment Order"}
             </Button>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2"
+              onClick={async () => await exportPOsToExcel(pos)}
+            >
+              {language === "ar" ? "تصدير إلى إكسل" : "Export to Excel"}
+            </Button>
             <Dialog open={openSettings} onOpenChange={setOpenSettings}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2">
@@ -181,15 +201,63 @@ const Index = () => {
                     <TabsTrigger value="options">Options</TabsTrigger>
                   </TabsList>
                   <TabsContent value="po-defaults">
-                    {/* ...existing PO Defaults form... */}
                     <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSaveSettings(); }}>
-                      {/* ...existing code... */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "اسم الشركة (إنجليزي)" : "Company Name (EN)"}</label>
+                        <input type="text" className="input w-full" value={companyNameEn} onChange={e => setCompanyNameEn(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "اسم الشركة (عربي)" : "Company Name (AR)"}</label>
+                        <input type="text" className="input w-full" value={companyNameAr} onChange={e => setCompanyNameAr(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "رابط الشعار" : "Logo URL"}</label>
+                        <input type="text" className="input w-full" value={companyLogo} onChange={e => setCompanyLogo(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "العنوان (إنجليزي)" : "Address (EN)"}</label>
+                        <input type="text" className="input w-full" value={locationEn} onChange={e => setLocationEn(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "العنوان (عربي)" : "Address (AR)"}</label>
+                        <input type="text" className="input w-full" value={locationAr} onChange={e => setLocationAr(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "رقم الهاتف" : "Phone Number"}</label>
+                        <input type="text" className="input w-full" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "رقم أمر الدفع الافتراضي" : "Default PO Number"}</label>
+                        <input type="text" className="input w-full" value={defaultPONumber} onChange={e => setDefaultPONumber(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "تفاصيل افتراضية" : "Default Details"}</label>
+                        <input type="text" className="input w-full" value={defaultDetails} onChange={e => setDefaultDetails(e.target.value)} />
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit">{language === "ar" ? "حفظ" : "Save"}</Button>
+                      </DialogFooter>
                     </form>
                   </TabsContent>
                   <TabsContent value="preferences">
-                    {/* ...existing Preferences form... */}
                     <form className="space-y-4" onSubmit={e => { e.preventDefault(); handleSaveSettings(); }}>
-                      {/* ...existing code... */}
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "اللغة" : "Language"}</label>
+                        <select className="input w-full" value={language} onChange={e => setLanguage(e.target.value)}>
+                          <option value="en">English</option>
+                          <option value="ar">العربية</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">{language === "ar" ? "الثيم" : "Theme"}</label>
+                        <select className="input w-full" value={theme} onChange={e => setTheme(e.target.value)}>
+                          <option value="light">{language === "ar" ? "فاتح" : "Light"}</option>
+                          <option value="dark">{language === "ar" ? "داكن" : "Dark"}</option>
+                        </select>
+                      </div>
+                      <DialogFooter>
+                        <Button type="submit">{language === "ar" ? "حفظ" : "Save"}</Button>
+                      </DialogFooter>
                     </form>
                   </TabsContent>
                   <TabsContent value="options">

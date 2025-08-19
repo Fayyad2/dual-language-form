@@ -6,24 +6,20 @@ import { POFormHeader } from "@/components/POForm/POFormHeader";
 import { PODetailsSection } from "@/components/POForm/PODetailsSection";
 import { BilingualInput } from "@/components/POForm/BillingualInput";
 import { CustomizableTable } from "@/components/POForm/CustomizableTable";
+import WordTable from "@/components/POForm/WordTable";
 import { CostCenterTable } from "@/components/POForm/CostCenterTable";
 import { ApprovalSection } from "@/components/POForm/ApprovalSection";
 import { POFormFooter } from "@/components/POForm/POFormFooter";
 import { PrintButton } from "@/components/POForm/PrintButton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DialogFooter } from "@/components/ui/dialog";
+import { DialogTrigger } from "@/components/ui/dialog";
 import React, { useRef } from "react";
 import nmcLogo from "@/assets/nmc-logo.png";
 import { CompanySettingsDialog } from "@/components/Settings/CompanySettingsDialog";
 import { POData, TableField } from "@/types/po";
 import { getNextPONumber } from "@/utils/poUtils";
 import { Save, ArrowLeft, Settings } from "lucide-react";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
 
 const defaultTableFields: TableField[] = [
   { label: "Beneficiary Name المستفيد", value: "", type: "text" },
@@ -34,6 +30,17 @@ const defaultTableFields: TableField[] = [
 ];
 
 const POForm = () => {
+  // State for extra custom table
+  const [customColumns, setCustomColumns] = useState<CustomTableColumn[]>([
+    { id: "col1", name: "Column 1" },
+    { id: "col2", name: "Column 2" }
+  ]);
+  const [customRows, setCustomRows] = useState<CustomTableRow[]>([
+    { id: "row1", values: ["", ""] }
+  ]);
+  // PO type selection
+  const [poTypeDialogOpen, setPOTypeDialogOpen] = useState(true);
+  const [poType, setPOType] = useState<'normal' | 'extra-table' | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -213,6 +220,20 @@ const POForm = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* PO Type Selection Dialog */}
+      <Dialog open={poTypeDialogOpen} onOpenChange={setPOTypeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Choose PO Type</DialogTitle>
+            <DialogDescription>Select the type of Payment Order you want to create.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <Button variant={poType === 'normal' ? 'default' : 'outline'} onClick={() => { setPOType('normal'); setPOTypeDialogOpen(false); }}>Normal PO</Button>
+            <Button variant={poType === 'extra-table' ? 'default' : 'outline'} onClick={() => { setPOType('extra-table'); setPOTypeDialogOpen(false); }}>Extra Table PO</Button>
+            <Button variant="ghost" disabled>More PO types coming soon...</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="max-w-4xl mx-auto p-6">
         {/* Header with back button */}
         <div className="flex items-center justify-between mb-6 print:hidden">
@@ -359,6 +380,11 @@ const POForm = () => {
             </div>
           </div>
           {/* NMC Details Table */}
+          {/* Conditional table rendering based on PO type */}
+          {poType === 'extra-table' && (
+            <WordTable />
+          )}
+          {/* NMC Details Table - fully restored with all fields, editable values only */}
           <table className="compact-table" style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '8px', fontSize: '11px' }}>
             <thead>
               <tr style={{ background: '#f3f3f3' }}>
@@ -384,7 +410,7 @@ const POForm = () => {
                   newFields[1].value = e.target.value;
                   setTableFields(newFields);
                 }} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
-                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Total Budget<br /><span style={{ fontWeight: 'normal' }}>الميزانية الكلية</span></td>
+                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Total Budget<br /><span style={{ fontWeight: 'normal' }}>الموازنة التقديرية</span></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={totalBudget} onChange={e => setTotalBudget(e.target.value)} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
               </tr>
               <tr>
@@ -394,7 +420,7 @@ const POForm = () => {
                   newFields[2].value = e.target.value;
                   setTableFields(newFields);
                 }} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
-                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Total Consumed<br /><span style={{ fontWeight: 'normal' }}>الاستهلاك</span></td>
+                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Total Consumed<br /><span style={{ fontWeight: 'normal' }}>الاستهلاك من الموازنة</span></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={totalConsumed} onChange={e => setTotalConsumed(e.target.value)} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
               </tr>
               <tr>
@@ -404,11 +430,11 @@ const POForm = () => {
                   newFields[3].value = e.target.value;
                   setTableFields(newFields);
                 }} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
-                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Applied this time<br /><span style={{ fontWeight: 'normal' }}>المبلغ المطبق</span></td>
+                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Applied this time<br /><span style={{ fontWeight: 'normal' }}>تم التقديم هذه المرة</span></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={appliedAmount} onChange={e => setAppliedAmount(e.target.value)} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
               </tr>
               <tr>
-                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Payment Type<br /><span style={{ fontWeight: 'normal' }}>نوع الدفعات</span></td>
+                <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Payment Type<br /><span style={{ fontWeight: 'normal' }}>نوع المدفوعات</span></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={tableFields[4]?.value || ''} onChange={e => {
                   const newFields = [...tableFields];
                   newFields[4].value = e.target.value;
@@ -419,22 +445,11 @@ const POForm = () => {
               </tr>
               <tr>
                 <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Time to Deliver<br /><span style={{ fontWeight: 'normal' }}>وقت التسليم</span></td>
-                <td style={{ border: '1px solid #888', padding: '4px' }}>
-                  <input
-                    type="date"
-                    value={tableFields[5]?.value || date}
-                    onChange={e => {
-                      const newFields = [...tableFields];
-                      if (newFields[5]) {
-                        newFields[5].value = e.target.value;
-                      } else {
-                        newFields[5] = { label: "Time to Deliver وقت التسليم", value: e.target.value, type: "text" };
-                      }
-                      setTableFields(newFields);
-                    }}
-                    style={{ fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px', width: '100%' }}
-                  />
-                </td>
+                <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={tableFields[5]?.value || ''} onChange={e => {
+                  const newFields = [...tableFields];
+                  if (newFields[5]) newFields[5].value = e.target.value;
+                  setTableFields(newFields);
+                }} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}></td>
               </tr>

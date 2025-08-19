@@ -13,13 +13,14 @@ export const OptionsTab = () => {
     if (saved) {
       setOptions(JSON.parse(saved));
     } else {
-      setOptions([
-        { en: "MAINTENANCE DEPARTMENT", ar: "قسم الصيانة" },
-        { en: "PROJECTS DEPARTMENT", ar: "قسم المشاريع" },
-        { en: "HR DEPARTMENT", ar: "قسم الموارد البشرية" },
-        { en: "FINANCE DEPARTMENT", ar: "قسم المالية" },
-        { en: "OTHER", ar: "قسم آخر" },
-      ]);
+      const defaultOptions = [
+        { en: "RIYADH", ar: "الرياض" },
+        { en: "Al MAJMA'AH", ar: "المجمعة" },
+        { en: "HAIL", ar: "حائل" },
+        { en: "JEDDAH", ar: "جدة" },
+      ];
+      setOptions(defaultOptions);
+      localStorage.setItem(OPTIONS_KEY, JSON.stringify(defaultOptions));
     }
   }, []);
 

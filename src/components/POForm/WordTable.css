@@ -1,0 +1,101 @@
+.word-table-cell-selected {
+  background: #e6f0fa !important;
+  outline: 2px solid #0078d4;
+}
+.word-table-cell-centered input {
+  text-align: center !important;
+}
+.word-table-wrapper {
+  position: relative;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.word-table {
+  border-collapse: collapse;
+  background: white;
+  width: 100%;
+  table-layout: fixed;
+}
+.word-table-th, .word-table-td {
+  border: 1px solid #bbb;
+  position: relative;
+  padding: 0;
+}
+.word-table-header-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-weight: bold;
+  padding: 8px;
+  font-size: 14px;
+}
+.word-table-cell-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  font-size: 14px;
+}
+.word-table-col-resize {
+  position: absolute;
+  right: -4px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  background: transparent;
+}
+.word-table-row-resize {
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 8px;
+  cursor: row-resize;
+  z-index: 10;
+  background: transparent;
+}
+.word-table-insert-col, .word-table-insert-row {
+  position: absolute;
+  background: #e5e5e5;
+  border: 1px solid #888;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+@media print {
+  .word-table-insert-col, .word-table-insert-row {
+    display: none !important;
+  }
+}
+.word-table-insert-col {
+  top: 50%;
+  right: -18px;
+  transform: translateY(-50%);
+  z-index: 20;
+}
+.word-table-insert-row {
+  left: 50%;
+  bottom: -18px;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+.word-table-th:focus-within, .word-table-td:focus-within {
+  outline: 2px solid #0078d4;
+}
+.word-table-th:hover .word-table-col-resize,
+.word-table-td:hover .word-table-row-resize {
+  background: #0078d4;
+  opacity: 0.2;
+}

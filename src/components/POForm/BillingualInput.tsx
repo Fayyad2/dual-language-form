@@ -59,6 +59,8 @@ export const BilingualInput = ({
   };
 
   return (
+    /*to edit for the future*/
+    /*Look into your notes just so you can remember*/
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-corporate-gray">{label}</h3>
