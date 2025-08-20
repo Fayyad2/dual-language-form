@@ -5,10 +5,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { POCard } from "@/components/POManagement/POCard";
+import { ApprovalsTable } from "@/components/POManagement/ApprovalsTable";
+import { CloseableApprovalsSection } from "@/components/POManagement/CloseableApprovalsSection";
 import { POFilters } from "@/components/POManagement/POFilters";
 import { POData } from "@/types/po";
 import { fetchAllPOsFromSupabase, deletePOFromSupabase } from '@/utils/poSupabase';
-import { Plus, FileText, Settings } from "lucide-react";
+import { Plus, FileText, Settings, User } from "lucide-react";
 import {
   Dialog,
   DialogTrigger,
@@ -59,10 +61,7 @@ const Index = () => {
           tags: item.tags ?? [],
           customFields: item.customFields ?? {},
           meta: item.meta ?? "",
-          createdBy: item.createdBy ?? "",
-          createdAt: item.createdAt ?? "",
-          updatedAt: item.updatedAt ?? "",
-          // Required POData fields with sensible defaults
+          creator: item.creator ?? "",
           department: item.department ?? "",
           beneficiaryName: item.beneficiaryName ?? "",
           amountWords: item.amountWords ?? "",
@@ -75,7 +74,6 @@ const Index = () => {
           attachments: item.attachments ?? [],
           approvedBy: item.approvedBy ?? "",
           reviewedBy: item.reviewedBy ?? "",
-          // Add missing required POData fields with sensible defaults
           paymentType: item.paymentType ?? "",
           timeToDeliver: item.timeToDeliver ?? "",
           costCenter: item.costCenter ?? "",
@@ -84,11 +82,15 @@ const Index = () => {
           projectName: item.projectName ?? "",
           projectNumber: item.projectNumber ?? "",
           supplierName: item.supplierName ?? "",
-          // Add missing POData fields with sensible defaults
           totalConsumed: item.totalConsumed ?? 0,
           appliedAmount: item.appliedAmount ?? 0,
           leftOver: item.leftOver ?? 0,
-          approvals: item.approvals ?? [],
+          fayad_approval: item.fayad_approval ?? false,
+          ayed_approval: item.ayed_approval ?? false,
+          sultan_approval: item.sultan_approval ?? false,
+          ekhatib_approval: item.ekhatib_approval ?? false,
+          finance_approval: item.finance_approval ?? false,
+          transaction_number: item.transaction_number ?? "",
         }));
         setPOs(mapped);
       })
@@ -206,11 +208,29 @@ const Index = () => {
 
   // ...existing code...
 
+  const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
+  const hrNames = ["Fayad Adel", "Mohammed Ayed", "Sultan Ibrahim"];
+  const engineerNames = ["E.khatib"];
+  const currentHR = localStorage.getItem('hrName') || hrNames[0];
+  const currentEngineer = localStorage.getItem('engineerName') || engineerNames[0];
   if (!accountType) {
     return <AccountTypePicker onPick={handlePickAccountType} />;
   }
   // Finance: restrict PO creation, show approve/decline bar
   const isFinance = accountType === "finance";
+  // Approve handler for ApprovalsTable
+  const handlePOApproval = async (poId: string, approver: string) => {
+    setPOs(pos => pos.map(po => {
+      if (po.id !== poId) return po;
+      const approvals = Array.isArray(po.approvals) ? po.approvals : [];
+      if (!approvals.includes(approver)) {
+        // Optionally: update in Supabase here
+        return { ...po, approvals: [...approvals, approver] };
+      }
+      return po;
+    }));
+    // TODO: Persist approval to Supabase if needed
+  };
   return (
     <div className="min-h-screen bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
       <div className="max-w-7xl mx-auto p-6">
@@ -252,9 +272,67 @@ const Index = () => {
             >
               {language === "ar" ? "تصدير إلى إكسل" : "Export to Excel"}
             </Button>
-            <Button variant="ghost" onClick={() => { localStorage.removeItem("accountType"); setAccountType(null); }}>
-              Switch Account Type
-            </Button>
+            {/* User info with pop-up for switching account */}
+            <button
+              className="flex items-center gap-2 px-2 py-1 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              onClick={() => setSwitchDialogOpen(true)}
+              style={{ cursor: 'pointer' }}
+            >
+              <User className="h-5 w-5 text-gray-600" />
+              <span className="font-medium text-gray-700">
+                {accountType === 'hr' ? currentHR : accountType === 'engineers' ? currentEngineer : 'Finance'}
+              </span>
+            </button>
+            {/* Switch account dialog */}
+            <Dialog open={switchDialogOpen} onOpenChange={setSwitchDialogOpen}>
+              <DialogContent className="max-w-xs w-full">
+                <DialogHeader>
+                  <DialogTitle>Switch Account</DialogTitle>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 mt-2">
+                  <Button
+                    variant={accountType === 'finance' ? 'default' : 'outline'}
+                    onClick={() => {
+                      setAccountType('finance');
+                      localStorage.setItem('accountType', 'finance');
+                      setSwitchDialogOpen(false);
+                    }}
+                  >
+                    Finance
+                  </Button>
+                  <div className="text-xs text-muted-foreground mt-2 mb-1">HR Accounts</div>
+                  {hrNames.map(name => (
+                    <Button
+                      key={name}
+                      variant={accountType === 'hr' && currentHR === name ? 'default' : 'outline'}
+                      onClick={() => {
+                        setAccountType('hr');
+                        localStorage.setItem('accountType', 'hr');
+                        localStorage.setItem('hrName', name);
+                        setSwitchDialogOpen(false);
+                      }}
+                    >
+                      {name}
+                    </Button>
+                  ))}
+                  <div className="text-xs text-muted-foreground mt-2 mb-1">Engineers</div>
+                  {engineerNames.map(name => (
+                    <Button
+                      key={name}
+                      variant={accountType === 'engineers' && currentEngineer === name ? 'default' : 'outline'}
+                      onClick={() => {
+                        setAccountType('engineers');
+                        localStorage.setItem('accountType', 'engineers');
+                        localStorage.setItem('engineerName', name);
+                        setSwitchDialogOpen(false);
+                      }}
+                    >
+                      {name}
+                    </Button>
+                  ))}
+                </div>
+              </DialogContent>
+            </Dialog>
             <Dialog open={openSettings} onOpenChange={setOpenSettings}>
               <DialogTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2">
@@ -404,8 +482,8 @@ const Index = () => {
           availableTags={availableTags}
         />
 
-        {/* PO Grid */}
-        <div className="mt-6">
+  {/* PO Grid */}
+  <div className="mt-6">
           {sortedPOs.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -461,6 +539,13 @@ const Index = () => {
             </div>
           )}
         </div>
+        {/* Approvals Table Section (closeable, below PO grid) */}
+        <div className="mt-10">
+          <CloseableApprovalsSection pos={sortedPOs} accountType={accountType} currentHR={currentHR} currentEngineer={currentEngineer} onApprove={handlePOApproval} />
+        </div>
+
+// Closeable section for ApprovalsTable (must be outside Index component)
+        // The CloseableApprovalsSection function has been moved to its own file.
       </div>
     </div>
   );

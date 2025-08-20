@@ -49,6 +49,7 @@ export const POCard = ({ po, onEdit, onView, onDelete }: POCardProps) => {
         <div className="text-sm text-muted-foreground">
           <p><span className="font-medium">{language === "ar" ? "التاريخ:" : "Date:"}</span> {new Date(po.date).toLocaleDateString()}</p>
           <p><span className="font-medium">{language === "ar" ? "الموقع:" : "Location:"}</span> {po.location}</p>
+          <p><span className="font-medium">{language === "ar" ? "بواسطة:" : "by:"}</span> {po.creator || '-'}</p>
           {po.customFields?.["Beneficiary Name المستفيد"] && (
             <p><span className="font-medium">{language === "ar" ? "المستفيد:" : "Beneficiary:"}</span> {po.customFields["Beneficiary Name المستفيد"]}</p>
           )}

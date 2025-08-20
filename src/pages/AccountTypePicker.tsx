@@ -1,15 +1,39 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 
+
 export type AccountType = "hr" | "finance";
 
+import { useState } from "react";
+
 export default function AccountTypePicker({ onPick }: { onPick: (type: AccountType) => void }) {
+  const [hrStep, setHrStep] = useState(false);
+
+  // Save HR name to localStorage when picked
+  const pickHR = (name: string) => {
+    localStorage.setItem('hrName', name);
+    onPick("hr");
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background">
       <div className="bg-white p-8 rounded shadow-md w-80 flex flex-col gap-6">
-        <h2 className="text-xl font-bold text-center">Choose your account type</h2>
-        <Button onClick={() => onPick("hr")}>HR (Create & Manage POs)</Button>
-        <Button onClick={() => onPick("finance")}>Finance (View & Approve/Decline POs)</Button>
+        <h2 className="text-xl font-bold text-center">
+          {hrStep ? "Choose your HR account" : "Choose your account type"}
+        </h2>
+        {!hrStep ? (
+          <>
+            <Button onClick={() => setHrStep(true)}>HR (Create & Manage POs)</Button>
+            <Button onClick={() => onPick("finance")}>Finance (View & Approve/Decline POs)</Button>
+          </>
+        ) : (
+          <>
+            <Button onClick={() => pickHR("Fayad Adel")}>HR: Fayad Adel</Button>
+            <Button onClick={() => pickHR("Mohammed Ayed")}>HR: Mohammed Ayed</Button>
+            <Button onClick={() => pickHR("Sultan Ibrahim")}>HR Manager: Sultan Ibrahim</Button>
+            <Button variant="ghost" onClick={() => setHrStep(false)}>Back</Button>
+          </>
+        )}
       </div>
     </div>
   );

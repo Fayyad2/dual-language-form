@@ -20,13 +20,14 @@ export interface POData {
   customFields: { [key: string]: string };
   tags: string[];
   status: 'draft' | 'pending' | 'approved' | 'completed' | 'declined' | 'review';
+  creator?: string;
   meta?: string;
-  approvals: {
-    hrOfficer: { signed: boolean; signature?: string; comments?: string };
-    projectsManager: { signed: boolean; signature?: string; comments?: string };
-    managingDirector: { signed: boolean; signature?: string; comments?: string };
-    financeManagement: { signed: boolean; signature?: string; comments?: string };
-  };
+  fayad_approval: boolean;
+  ayed_approval: boolean;
+  sultan_approval: boolean;
+  ekhatib_approval: boolean;
+  finance_approval: boolean;
+  transaction_number?: string;
 }
 
 export interface TableField {

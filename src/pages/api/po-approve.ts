@@ -1,4 +1,4 @@
-import { updatePOInSupabase } from "@/utils/poSupabase";
+import { fetchAllPOsFromSupabase, updatePOInSupabase } from "@/utils/poSupabase";
 
 export async function POST(req: Request) {
   try {
@@ -9,7 +9,7 @@ export async function POST(req: Request) {
       // Fetch current PO meta
       const all = await fetchAllPOsFromSupabase();
       const po = all.find((p: any) => p.id === id);
-      let meta = {};
+      let meta: Record<string, any> = {};
       if (po?.meta) {
         try { meta = JSON.parse(po.meta); } catch {}
       }
