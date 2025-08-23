@@ -12,7 +12,9 @@ export async function addPOToSupabase(po: Record<string, any>) {
 }
 
 export async function updatePOInSupabase(id: string, po: Record<string, any>) {
-  const { data, error } = await supabase.from('pos').update(po).eq('id', id);
+  // Ensure id is a number for Supabase
+  const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+  const { data, error } = await supabase.from('pos').update(po).eq('id', numericId);
   if (error) throw error;
   return data;
 }

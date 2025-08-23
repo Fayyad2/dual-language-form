@@ -1,5 +1,5 @@
 import React from "react";
-import { Check } from "lucide-react";
+import { Check, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ApprovalsTableProps {
@@ -11,10 +11,10 @@ interface ApprovalsTableProps {
 }
 
 const approvers = [
-  { key: "fayad_approval", label: "Fayad Approval", name: "Fayad Adel" },
-  { key: "ayed_approval", label: "Ayed Approval", name: "Mohammed Ayed" },
-  { key: "sultan_approval", label: "Sultan Approval", name: "Sultan Ibrahim" },
-  { key: "ekhatib_approval", label: "E.khatib Approval", name: "E.khatib" },
+  { key: "fayad_approval", label: "Fayad Approval", name: "Fayad Adel", column: "Fayad Approval" },
+  { key: "ayed_approval", label: "Ayed Approval", name: "Mohammed Ayed", column: "Ayed Approval" },
+  { key: "sultan_approval", label: "Sultan Approval", name: "Sultan Ibrahim", column: "Sultan Approval" },
+  { key: "ekhatib_approval", label: "E.khatib Approval", name: "E.khatib", column: "E.khatib Approval" },
 ];
 
 export const ApprovalsTable: React.FC<ApprovalsTableProps> = ({ pos, accountType, currentHR, currentEngineer, onApprove }) => {
@@ -40,7 +40,17 @@ export const ApprovalsTable: React.FC<ApprovalsTableProps> = ({ pos, accountType
               className="transition-colors hover:bg-blue-50"
             >
               <td className="border px-2 py-1">{po.poNumber}</td>
-              <td className="border px-2 py-1">{po.purposeArabic}</td>
+              <td className="border px-2 py-1">
+                {po.purposeArabic
+                  || (po.meta && (() => {
+                        try {
+                          const metaObj = typeof po.meta === 'string' ? JSON.parse(po.meta) : po.meta;
+                          return metaObj.purposeArabic || "";
+                        } catch {
+                          return "";
+                        }
+                    })())}
+              </td>
               <td className="border px-2 py-1">{po.amount}</td>
               {approvers.map(a => {
                 // Only allow the logged-in user to check their own column
@@ -56,10 +66,10 @@ export const ApprovalsTable: React.FC<ApprovalsTableProps> = ({ pos, accountType
                       <Check className="inline h-5 w-5 text-green-600" />
                     ) : canApprove ? (
                       <Button size="icon" variant="ghost" onClick={() => onApprove(po.id, a.key)}>
-                        <span className="inline-block w-5 h-5 border rounded-full border-gray-400"></span>
+                        <Circle className="inline h-5 w-5 text-gray-400" />
                       </Button>
                     ) : (
-                      <span className="inline-block w-5 h-5"></span>
+                      <Circle className="inline h-5 w-5 text-gray-300 opacity-60" />
                     )}
                   </td>
                 );

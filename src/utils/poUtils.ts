@@ -3,7 +3,7 @@ export const getNextPONumber = (): string => {
   const savedPOs = JSON.parse(localStorage.getItem('pos') || '[]');
   
   if (savedPOs.length === 0) {
-    return "PO-001";
+    return "PO-0001";
   }
   
   // Extract numeric parts from PO numbers and find the highest
@@ -17,7 +17,7 @@ export const getNextPONumber = (): string => {
   const highestNumber = Math.max(...numbers, 0);
   const nextNumber = highestNumber + 1;
   
-  return `PO-${nextNumber.toString().padStart(3, '0')}`;
+  return `PO-${nextNumber.toString().padStart(4, '0')}`;
 };
 
 // Company settings management

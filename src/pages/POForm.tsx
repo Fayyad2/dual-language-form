@@ -1,6 +1,128 @@
+import { useBeneficiaryNameSuggestions } from "@/hooks/useBeneficiaryNameSuggestions";
+function BeneficiaryNameAutocomplete({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const suggestions = useBeneficiaryNameSuggestions();
+  const [show, setShow] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
+  const ref = useRef<HTMLInputElement>(null);
+  const filtered = value.trim()
+    ? suggestions.filter(s => s.toLowerCase().includes(value.trim().toLowerCase()) && s !== value.trim()).slice(0, 7)
+    : [];
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        ref={ref}
+        type="text"
+        value={value}
+        onChange={e => { onChange(e.target.value); setShow(true); setHighlight(-1); }}
+        onFocus={() => setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 120)}
+        style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }}
+        placeholder="Beneficiary Name"
+        autoComplete="off"
+      />
+      <ul style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: ref.current ? ref.current.offsetHeight + 4 : 40,
+        background: '#fff',
+        border: '2px solid #2563eb',
+        borderRadius: '3px',
+        zIndex: 10,
+        margin: 0,
+        padding: 0,
+        listStyle: 'none',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+        maxHeight: 140,
+        overflowY: 'auto',
+        fontSize: '12px',
+        display: value.trim() && filtered.length > 0 && show ? 'block' : 'none',
+      }}>
+        {filtered.map((s, i) => (
+          <li
+            key={s}
+            onMouseDown={() => { onChange(s); setShow(false); }}
+            onMouseEnter={() => setHighlight(i)}
+            style={{
+              background: highlight === i ? '#e6f0fa' : '#fff',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              borderBottom: i !== filtered.length - 1 ? '1px solid #eee' : 'none',
+            }}
+          >{s}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+// --- Autocomplete for Arabic Purpose ---
+import React, { useState, useRef } from "react";
+type PurposeArabicAutocompleteProps = {
+  value: string;
+  onChange: (v: string) => void;
+  suggestionsHook: () => string[];
+};
+function PurposeArabicAutocomplete({ value, onChange, suggestionsHook }: PurposeArabicAutocompleteProps) {
+  const suggestions = suggestionsHook();
+  const [show, setShow] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
+  const ref = useRef<HTMLTextAreaElement>(null);
+  const filtered = value.trim()
+    ? suggestions.filter(s => s.includes(value.trim()) && s !== value.trim()).slice(0, 7)
+    : [];
+  // Debug log
+  console.log('PurposeArabicAutocomplete suggestions:', suggestions);
+  console.log('PurposeArabicAutocomplete filtered:', filtered);
+  return (
+    <div style={{ position: 'relative', direction: 'rtl' }}>
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={e => { onChange(e.target.value); setShow(true); setHighlight(-1); }}
+        onFocus={() => setShow(true)}
+        onBlur={() => setTimeout(() => setShow(false), 120)}
+        style={{ fontSize: '12px', minHeight: '32px', border: '1px solid #888', padding: '4px', background: '#fafafa', width: '100%', resize: 'vertical', direction: 'rtl' }}
+        placeholder="ادخل الوصف بالعربية"
+      />
+      <ul style={{
+        position: 'absolute',
+        right: 0,
+        left: 0,
+        top: ref.current ? ref.current.offsetHeight + 4 : 40,
+        background: '#fff',
+        border: '2px solid #e00',
+        borderRadius: '3px',
+        zIndex: 10,
+        margin: 0,
+        padding: 0,
+        listStyle: 'none',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+        maxHeight: 140,
+        overflowY: 'auto',
+        fontSize: '12px',
+        textAlign: 'right',
+        display: value.trim() && filtered.length > 0 ? 'block' : 'none',
+      }}>
+        {filtered.map((s, i) => (
+          <li
+            key={s}
+            onMouseDown={() => { onChange(s); setShow(false); }}
+            onMouseEnter={() => setHighlight(i)}
+            style={{
+              background: highlight === i ? '#e6f0fa' : '#fff',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              borderBottom: i !== filtered.length - 1 ? '1px solid #eee' : 'none',
+            }}
+          >{s}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 import '../poform-print.css';
 import fotter from '@/assets/fotter.png';
-import { useState, useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -8,6 +130,7 @@ import { uploadAttachment } from '@/utils/uploadAttachment';
 import { POFormHeader } from "@/components/POForm/POFormHeader";
 import { PODetailsSection } from "@/components/POForm/PODetailsSection";
 import { BilingualInput } from "@/components/POForm/BillingualInput";
+import { usePurposeArabicSuggestions } from "@/hooks/usePurposeArabicSuggestions";
 import { CustomizableTable } from "@/components/POForm/CustomizableTable";
 import { CostCenterTable } from "@/components/POForm/CostCenterTable";
 import { ApprovalSection } from "@/components/POForm/ApprovalSection";
@@ -67,8 +190,8 @@ const POForm = () => {
   // Form state
   const [poNumber, setPONumber] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [poLocation, setPOLocation] = useState("MAINTENANCE DEPARTMENT");
   const [locationOptions, setLocationOptions] = useState<{ en: string; ar: string }[]>([]);
+  const [poLocation, setPOLocation] = useState("");
   const [department, setDepartment] = useState("");
   const [purposeEnglish, setPurposeEnglish] = useState("");
   const [purposeArabic, setPurposeArabic] = useState("");
@@ -95,27 +218,31 @@ const POForm = () => {
 
   // Load PO data if editing
   useEffect(() => {
-    if (editPO) {
-      setPONumber(editPO.poNumber || "");
-      setDate(editPO.date || new Date().toISOString().split('T')[0]);
-  setPOLocation(editPO.location || "MAINTENANCE DEPARTMENT");
-      setDepartment(editPO.department || "");
-      setPurposeEnglish(editPO.purposeEnglish || "");
-      setPurposeArabic(editPO.purposeArabic || "");
-      setCostCenter(editPO.costCenter || "");
-      setTotalBudget(editPO.totalBudget || "");
-      setTotalConsumed(editPO.totalConsumed || "");
-      setAppliedAmount(editPO.appliedAmount || "");
-      setLeftOver(editPO.leftOver || "");
-      if (editPO.customFields) {
-        const fields = defaultTableFields.map(f => ({ ...f, value: editPO.customFields[f.label] || "" }));
-        setTableFields(fields);
+    function setInitialPONumber() {
+      if (editPO) {
+        setPONumber(editPO.poNumber || "");
+        setDate(editPO.date || new Date().toISOString().split('T')[0]);
+        setPOLocation(editPO.location || "MAINTENANCE DEPARTMENT");
+        setDepartment(editPO.department || "");
+        setPurposeEnglish(editPO.purposeEnglish || "");
+        setPurposeArabic(editPO.purposeArabic || "");
+        setCostCenter(editPO.costCenter || "");
+        setTotalBudget(editPO.totalBudget || "");
+        setTotalConsumed(editPO.totalConsumed || "");
+        setAppliedAmount(editPO.appliedAmount || "");
+        setLeftOver(editPO.leftOver || "");
+        if (editPO.customFields) {
+          const fields = defaultTableFields.map(f => ({ ...f, value: editPO.customFields[f.label] || "" }));
+          setTableFields(fields);
+        }
+        if (editPO.approvals) setApprovals(editPO.approvals);
+      } else {
+        // Use local POs for numbering
+        setPONumber(getNextPONumber());
+        setPOLocation("MAINTENANCE DEPARTMENT");
       }
-      if (editPO.approvals) setApprovals(editPO.approvals);
-    } else {
-  setPONumber(getNextPONumber());
-  setPOLocation("MAINTENANCE DEPARTMENT");
     }
+    setInitialPONumber();
   }, []);
 
   const updateApproval = (role: string, field: string, value: string) => {
@@ -138,6 +265,8 @@ const POForm = () => {
 
   // Save PO handler
   const handleSave = async (type: 'pending' | 'draft') => {
+  // Save locationOptions as default if changed (user can edit in form in future)
+  localStorage.setItem("locationOptions", JSON.stringify(locationOptions));
     // --- SAVE LOGIC EXPLANATION ---
     // Saving as draft: status remains 'draft', PO is not sent to finance, can be edited later.
     // Publishing: status becomes 'pending', PO is sent to finance for processing.
@@ -164,21 +293,15 @@ const POForm = () => {
       purposeArabic,
       costCenter,
       totalBudget,
-      totalConsumed,
+      totalConsumed, 
       appliedAmount,
       leftOver,
       tableFields,
-      approvals,
       customColumns,
       customRows,
       poType,
-      wordTableData: undefined, // If you have wordTableData, set it here
       attachments: uploadedAttachmentUrls
     };
-    // If you have wordTableData, set it properly
-    if (poType === 'extra-table' && typeof getWordTableData === 'function') {
-      metaObj.wordTableData = getWordTableData();
-    }
 
     // Compose PO data
     // Get creator from localStorage (set in account picker)
@@ -199,7 +322,6 @@ const POForm = () => {
         acc[field.label] = field.value;
         return acc;
       }, {} as { [key: string]: string }),
-      approvals,
       status: type === 'pending' ? 'pending' : 'draft',
       tags: [],
       creator,
@@ -219,6 +341,7 @@ const POForm = () => {
       status: po.status,
       creator: po.creator, // send creator to Supabase
       meta: po.meta || '',
+      // Do NOT send any approval booleans on creation; let Supabase default them to null/false
       // ...add other fields as needed
     });
 
@@ -282,25 +405,37 @@ const POForm = () => {
 
   useEffect(() => {
     const savedSettings = JSON.parse(localStorage.getItem("settings") || "{}");
-    setLanguage(savedSettings.language || "en");
-    setCompanyLogo(savedSettings.companyLogo || nmcLogo);
-    setCompanyNameEn(savedSettings.companyNameEn || "Northern Mountain Contracting Co.");
-    setCompanyNameAr(savedSettings.companyNameAr || "شركة الجبل الشمالي للمقاولات");
-    setLocationEn(savedSettings.locationEn || "Riyadh – KSA");
-    setLocationAr(savedSettings.locationAr || "المملكة العربية السعودية – الرياض");
-    setPhoneNumber(savedSettings.phoneNumber || "Phone: 011-2397939");
-    // Load location options from localStorage
+  setLanguage(savedSettings.language || "en");
+  setCompanyLogo(savedSettings.companyLogo || nmcLogo);
+  setCompanyNameEn(savedSettings.companyNameEn || "Northern Mountains Contracting Co.");
+  setCompanyNameAr(savedSettings.companyNameAr || "شركة الجبال الشمالية للمقاولات");
+  setLocationEn(savedSettings.locationEn || "Riyadh – KSA");
+  setLocationAr(savedSettings.locationAr || "المملكة العربية السعودية – الرياض");
+  setPhoneNumber(savedSettings.phoneNumber || "Phone: 011-2397939");
+    // Load location options from localStorage (set by OptionsTab)
     const saved = localStorage.getItem("locationOptions");
+    let opts: { en: string; ar: string }[] = [];
     if (saved) {
-      setLocationOptions(JSON.parse(saved));
+      opts = JSON.parse(saved);
     } else {
-      setLocationOptions([
+      opts = [
         { en: "MAINTENANCE DEPARTMENT", ar: "قسم الصيانة" },
         { en: "PROJECTS DEPARTMENT", ar: "قسم المشاريع" },
         { en: "HR DEPARTMENT", ar: "قسم الموارد البشرية" },
         { en: "FINANCE DEPARTMENT", ar: "قسم المالية" },
         { en: "OTHER", ar: "قسم آخر" },
-      ]);
+      ];
+      localStorage.setItem("locationOptions", JSON.stringify(opts));
+    }
+    setLocationOptions(opts);
+    // Set default location to first option if not editing
+    if (!editPO && opts.length > 0) {
+      // Use default location if set in settings, else first option
+      if (savedSettings.locationEn && opts.some(o => o.en === savedSettings.locationEn)) {
+        setPOLocation(savedSettings.locationEn);
+      } else {
+        setPOLocation(opts[0].en);
+      }
     }
   }, []);
 
@@ -311,10 +446,10 @@ const POForm = () => {
     if (attachments.length > 0 && attachmentURLs.length === attachments.length) {
       // Not yet saved, use local preview
       urls = attachmentURLs;
-    } else {
+    } else if (editPO?.meta) {
       // After save, use uploaded URLs from meta
       try {
-        const metaObj = meta ? JSON.parse(meta) : {};
+        const metaObj = JSON.parse(editPO.meta);
         urls = metaObj.attachments || [];
       } catch {
         urls = [];
@@ -496,11 +631,10 @@ const POForm = () => {
             </div>
             <div style={{ width: '48%', textAlign: 'right', position: 'relative' }}>
               <div style={{ fontWeight: 'bold', fontSize: '12px', marginBottom: '2px' }}>الوصف:</div>
-              <textarea
+              <PurposeArabicAutocomplete
                 value={purposeArabic}
-                onChange={e => setPurposeArabic(e.target.value)}
-                style={{ fontSize: '12px', minHeight: '32px', border: '1px solid #888', padding: '4px', background: '#fafafa', width: '100%', resize: 'vertical' }}
-                placeholder="ادخل الوصف بالعربية"
+                onChange={setPurposeArabic}
+                suggestionsHook={usePurposeArabicSuggestions}
               />
               <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>الملفات مرفقة</div>
               {/* Auto-translate button, hidden during print */}
@@ -523,6 +657,7 @@ const POForm = () => {
                 className="print:hidden"
               >Translate</button>
             </div>
+
           </div>
           {/* NMC Details Table */}
           {/* Conditional table rendering based on PO type */}
@@ -542,11 +677,16 @@ const POForm = () => {
             <tbody>
               <tr>
                 <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Beneficiary Name<br /><span style={{ fontWeight: 'normal' }}>اسم المستفيد</span></td>
-                <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={tableFields[0]?.value || ''} onChange={e => {
-                  const newFields = [...tableFields];
-                  newFields[0].value = e.target.value;
-                  setTableFields(newFields);
-                }} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
+                <td style={{ border: '1px solid #888', padding: '4px' }}>
+                  <BeneficiaryNameAutocomplete
+                    value={tableFields[0]?.value || ''}
+                    onChange={v => {
+                      const newFields = [...tableFields];
+                      newFields[0].value = v;
+                      setTableFields(newFields);
+                    }}
+                  />
+                </td>
                 <td style={{ border: '1px solid #888', padding: '4px', fontWeight: 'bold' }}>Cost Center<br /><span style={{ fontWeight: 'normal' }}>مركز التكلفة</span></td>
                 <td style={{ border: '1px solid #888', padding: '4px' }}><input type="text" value={costCenter} onChange={e => setCostCenter(e.target.value)} style={{ width: '100%', fontSize: '11px', border: '1px solid #888', borderRadius: '3px', padding: '2px' }} /></td>
               </tr>

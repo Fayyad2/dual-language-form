@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import "./DashboardBubbles.css";
 import AccountTypePicker, { AccountType } from "./AccountTypePicker";
 import FinanceApprovalBar from "@/components/POManagement/FinanceApprovalBar";
 import { useNavigate } from "react-router-dom";
@@ -9,7 +10,7 @@ import { ApprovalsTable } from "@/components/POManagement/ApprovalsTable";
 import { CloseableApprovalsSection } from "@/components/POManagement/CloseableApprovalsSection";
 import { POFilters } from "@/components/POManagement/POFilters";
 import { POData } from "@/types/po";
-import { fetchAllPOsFromSupabase, deletePOFromSupabase } from '@/utils/poSupabase';
+import { fetchAllPOsFromSupabase, deletePOFromSupabase, updatePOInSupabase } from '@/utils/poSupabase';
 import { Plus, FileText, Settings, User } from "lucide-react";
 import {
   Dialog,
@@ -24,6 +25,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { OptionsTab } from "./OptionsTab";
 import nmcLogo from "@/assets/nmc-logo.png";
 import { exportPOsToExcel } from "@/utils/excelExport";
+import { Loader } from '@/components/ui/loader';
 
 const Index = () => {
   // Account type logic
@@ -48,7 +50,7 @@ const Index = () => {
   useEffect(() => {
     fetchAllPOsFromSupabase()
       .then(data => {
-        // Map each record to POData type, provide defaults for missing fields if necessary
+        // Map Supabase columns with spaces/caps to internal keys for UI
         const mapped = (data || []).map((item: Record<string, any>) => ({
           id: item.id ?? "",
           poNumber: item.poNumber ?? "",
@@ -85,12 +87,12 @@ const Index = () => {
           totalConsumed: item.totalConsumed ?? 0,
           appliedAmount: item.appliedAmount ?? 0,
           leftOver: item.leftOver ?? 0,
-          fayad_approval: item.fayad_approval ?? false,
-          ayed_approval: item.ayed_approval ?? false,
-          sultan_approval: item.sultan_approval ?? false,
-          ekhatib_approval: item.ekhatib_approval ?? false,
-          finance_approval: item.finance_approval ?? false,
-          transaction_number: item.transaction_number ?? "",
+          fayad_approval: item["Fayad Approval"] ?? false,
+          ayed_approval: item["Ayed Approval"] ?? false,
+          sultan_approval: item["Sultan Approval"] ?? false,
+          ekhatib_approval: item["E.khatib Approval"] ?? false,
+          finance_approval: item["Finance Approval"] ?? false,
+          transaction_number: item["Transaction number"] ?? "",
         }));
         setPOs(mapped);
       })
@@ -104,8 +106,16 @@ const Index = () => {
 
   // Filter POs
   const filteredPOs = pos.filter(po => {
-    // Finance can only see published (pending/approved/review) POs
-    if (accountType === "finance" && !["pending", "approved", "review"].includes(po.status)) return false;
+    // Finance can only see POs that are fully approved by all approvers (before finance)
+    if (accountType === "finance") {
+      // All HR/engineer approvals must be true (use correct property names)
+      const allApproved =
+        (po.fayad_approval ?? false) &&
+        (po.ayed_approval ?? false) &&
+        (po.sultan_approval ?? false) &&
+        (po.ekhatib_approval ?? false);
+      if (!allApproved || po.status !== "pending") return false;
+    }
     const matchesSearch = 
       po.poNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (po.customFields?.["Beneficiary Name المستفيد"] || "")
@@ -206,36 +216,68 @@ const Index = () => {
     toast({ title: "Settings Saved", description: "Your settings have been updated." });
   };
 
-  // ...existing code...
-
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
   const hrNames = ["Fayad Adel", "Mohammed Ayed", "Sultan Ibrahim"];
   const engineerNames = ["E.khatib"];
   const currentHR = localStorage.getItem('hrName') || hrNames[0];
   const currentEngineer = localStorage.getItem('engineerName') || engineerNames[0];
-  if (!accountType) {
-    return <AccountTypePicker onPick={handlePickAccountType} />;
-  }
+
+  // Always call hooks before any return
+
+  // Render account picker if not selected
+  const shouldShowAccountPicker = !accountType;
   // Finance: restrict PO creation, show approve/decline bar
   const isFinance = accountType === "finance";
+  // Approval loading state
+  const [approvalLoading, setApprovalLoading] = useState<string | null>(null);
   // Approve handler for ApprovalsTable
   const handlePOApproval = async (poId: string, approver: string) => {
-    setPOs(pos => pos.map(po => {
-      if (po.id !== poId) return po;
-      const approvals = Array.isArray(po.approvals) ? po.approvals : [];
-      if (!approvals.includes(approver)) {
-        // Optionally: update in Supabase here
-        return { ...po, approvals: [...approvals, approver] };
-      }
-      return po;
-    }));
-    // TODO: Persist approval to Supabase if needed
+    setApprovalLoading(poId + approver);
+    try {
+      const po = pos.find(p => p.id === poId);
+      if (!po) { setApprovalLoading(null); return; }
+      // Map internal key to Supabase column name
+      const columnMap: Record<string, string> = {
+        fayad_approval: "Fayad Approval",
+        ayed_approval: "Ayed Approval",
+        sultan_approval: "Sultan Approval",
+        ekhatib_approval: "E.khatib Approval",
+        finance_approval: "Finance Approval"
+      };
+      const column = columnMap[approver] || approver;
+      const update: any = {};
+      update[column] = true;
+      console.log('Updating PO:', { id: poId, update });
+      await updatePOInSupabase(poId, update);
+      setPOs(pos => pos.map(p => p.id === poId ? { ...p, [approver]: true } : p));
+      setApprovalLoading(null);
+      toast({
+        title: "Signed successfully",
+        description: "Thank you!",
+        duration: 3000,
+      });
+    } catch (e) {
+      setApprovalLoading(null);
+      toast({ title: "Error", description: "Failed to sign. Please try again.", variant: "destructive" });
+    }
   };
+  if (shouldShowAccountPicker) {
+    return <AccountTypePicker onPick={handlePickAccountType} />;
+  }
+
   return (
-    <div className="min-h-screen bg-background" dir={language === "ar" ? "rtl" : "ltr"}>
-      <div className="max-w-7xl mx-auto p-6">
+    <div className="min-h-screen bg-background" dir={language === "ar" ? "rtl" : "ltr"} style={{ position: 'relative', overflow: 'hidden' }}>
+      {/* Animated blue bubbles background */}
+      <div className="dashboard-bg-bubbles">
+        <div className="bubble b1"></div>
+        <div className="bubble b2"></div>
+        <div className="bubble b3"></div>
+        <div className="bubble b4"></div>
+        <div className="bubble b5"></div>
+      </div>
+      <div className="max-w-7xl mx-auto p-6" style={{ position: 'relative', zIndex: 1 }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+  <div className="flex items-center justify-between mb-8 dashboard-header-bg" style={{position:'sticky',top:0,zIndex:10,background:'rgba(255,255,255,0.98)',backdropFilter:'blur(8px)',boxShadow:'0 2px 16px 0 rgba(0,0,32,0.07)',padding:'32px 32px 24px 32px'}}>
           <div className="flex items-center gap-4">
             <img 
               src={companyLogo || nmcLogo} 
@@ -482,8 +524,8 @@ const Index = () => {
           availableTags={availableTags}
         />
 
-  {/* PO Grid */}
-  <div className="mt-6">
+        {/* PO Grid */}
+        <div className="mt-6">
           {sortedPOs.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
@@ -511,14 +553,14 @@ const Index = () => {
                     onDelete={handleDelete}
                   />
                   {/* Finance approval bar for finance users and pending/review POs */}
-                  {isFinance && ["pending", "review"].includes(po.status) && (
+                  {isFinance && po.status === "pending" && (
                     <FinanceApprovalBar
                       status={po.status}
                       onApprove={async (transactionNumber: string) => {
-                        // Approve: set status to 'approved' and save transaction number in meta
-                        await fetch('/api/po-approve', { method: 'POST', body: JSON.stringify({ id: po.id, status: 'approved', transactionNumber }) });
-                        setPOs(pos => pos.map(p => p.id === po.id ? { ...p, status: 'approved', meta: JSON.stringify({ ...(po.meta ? JSON.parse(po.meta) : {}), transactionNumber }) } : p));
-                        toast({ title: 'PO Approved', description: 'The PO has been approved.' });
+                        // Approve: set status to 'approved by finance' and save transaction number in meta
+                        await fetch('/api/po-approve', { method: 'POST', body: JSON.stringify({ id: po.id, status: 'approved by finance', transactionNumber }) });
+                        setPOs(pos => pos.map(p => p.id === po.id ? { ...p, status: 'approved by finance', meta: JSON.stringify({ ...(po.meta ? JSON.parse(po.meta) : {}), transactionNumber }) } : p));
+                        toast({ title: 'PO Approved by Finance', description: 'The PO has been approved by finance.' });
                       }}
                       onDecline={async () => {
                         // Decline: set status to 'declined'
@@ -539,13 +581,11 @@ const Index = () => {
             </div>
           )}
         </div>
+
         {/* Approvals Table Section (closeable, below PO grid) */}
         <div className="mt-10">
-          <CloseableApprovalsSection pos={sortedPOs} accountType={accountType} currentHR={currentHR} currentEngineer={currentEngineer} onApprove={handlePOApproval} />
+          <CloseableApprovalsSection pos={pos} accountType={accountType} currentHR={currentHR} currentEngineer={currentEngineer} onApprove={handlePOApproval} />
         </div>
-
-// Closeable section for ApprovalsTable (must be outside Index component)
-        // The CloseableApprovalsSection function has been moved to its own file.
       </div>
     </div>
   );

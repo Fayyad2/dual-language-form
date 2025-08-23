@@ -1,0 +1,52 @@
+/* Modern animated blue bubbles background for dashboard */
+
+.dashboard-bg-bubbles {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  filter: blur(64px) brightness(1.4) saturate(1.1);
+}
+.dashboard-bg-bubbles .bubble {
+  position: absolute;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb 60%, #60a5fa 100%);
+  opacity: 0.13;
+  animation: moveBubbles 32s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.dashboard-bg-bubbles .bubble.b1 {
+  width: 900px; height: 900px;
+  left: -10vw; top: 0vh;
+  animation-delay: 0s;
+}
+.dashboard-bg-bubbles .bubble.b2 {
+  width: 700px; height: 700px;
+  left: 60vw; top: 10vh;
+  animation-delay: 4s;
+}
+.dashboard-bg-bubbles .bubble.b3 {
+  width: 600px; height: 600px;
+  left: 25vw; top: 60vh;
+  animation-delay: 8s;
+}
+.dashboard-bg-bubbles .bubble.b4 {
+  width: 800px; height: 800px;
+  left: 80vw; top: 70vh;
+  animation-delay: 12s;
+}
+.dashboard-bg-bubbles .bubble.b5 {
+  width: 500px; height: 500px;
+  left: 45vw; top: 80vh;
+  animation-delay: 16s;
+}
+@keyframes moveBubbles {
+  0% { transform: translateY(0) scale(1) translateX(0); }
+  
+  50% { transform: translateY(-120px) scale(1.12) translateX(-40px); }
+  
+  100% { transform: translateY(0) scale(1) translateX(0); }
+}
