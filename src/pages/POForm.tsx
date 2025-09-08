@@ -57,10 +57,12 @@ function BeneficiaryNameAutocomplete({ value, onChange }: { value: string; onCha
 }
 // --- Autocomplete for Arabic Purpose ---
 import React, { useState, useRef } from "react";
+import { FaStar } from "react-icons/fa";
+type PurposeSuggestion = { value: string; isAI?: boolean };
 type PurposeArabicAutocompleteProps = {
   value: string;
   onChange: (v: string) => void;
-  suggestionsHook: () => string[];
+  suggestionsHook: () => PurposeSuggestion[];
 };
 function PurposeArabicAutocomplete({ value, onChange, suggestionsHook }: PurposeArabicAutocompleteProps) {
   const suggestions = suggestionsHook();
@@ -68,11 +70,9 @@ function PurposeArabicAutocomplete({ value, onChange, suggestionsHook }: Purpose
   const [highlight, setHighlight] = useState(-1);
   const ref = useRef<HTMLTextAreaElement>(null);
   const filtered = value.trim()
-    ? suggestions.filter(s => s.includes(value.trim()) && s !== value.trim()).slice(0, 7)
-    : [];
-  // Debug log
-  console.log('PurposeArabicAutocomplete suggestions:', suggestions);
-  console.log('PurposeArabicAutocomplete filtered:', filtered);
+    ? suggestions.filter(s => s.value.includes(value.trim()) && s.value !== value.trim()).slice(0, 7)
+    : suggestions.slice(0, 7);
+  // Always show suggestions when focused, hide only on blur
   return (
     <div style={{ position: 'relative', direction: 'rtl' }}>
       <textarea
@@ -101,20 +101,26 @@ function PurposeArabicAutocomplete({ value, onChange, suggestionsHook }: Purpose
         overflowY: 'auto',
         fontSize: '12px',
         textAlign: 'right',
-        display: value.trim() && filtered.length > 0 ? 'block' : 'none',
+        display: show ? 'block' : 'none',
       }}>
         {filtered.map((s, i) => (
           <li
-            key={s}
-            onMouseDown={() => { onChange(s); setShow(false); }}
+            key={s.value}
+            onMouseDown={() => { onChange(s.value); setShow(false); }}
             onMouseEnter={() => setHighlight(i)}
             style={{
               background: highlight === i ? '#e6f0fa' : '#fff',
               padding: '6px 12px',
               cursor: 'pointer',
               borderBottom: i !== filtered.length - 1 ? '1px solid #eee' : 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
             }}
-          >{s}</li>
+          >
+            {s.value}
+            {s.isAI && <FaStar style={{ color: '#2563eb', marginRight: 6 }} title="AI suggestion" />}
+          </li>
         ))}
       </ul>
     </div>
@@ -634,7 +640,7 @@ const POForm = () => {
               <PurposeArabicAutocomplete
                 value={purposeArabic}
                 onChange={setPurposeArabic}
-                suggestionsHook={usePurposeArabicSuggestions}
+                suggestionsHook={() => usePurposeArabicSuggestions(purposeArabic)}
               />
               <div style={{ fontSize: '10px', color: '#888', marginTop: '2px' }}>الملفات مرفقة</div>
               {/* Auto-translate button, hidden during print */}

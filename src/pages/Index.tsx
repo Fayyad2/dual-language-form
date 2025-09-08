@@ -1,4 +1,14 @@
 import { useState, useEffect } from "react";
+import OTPVerificationPage from "@/components/ui/OTPVerificationPage";
+  // Map account types and user names to WhatsApp numbers
+  const accountPhoneNumbers: Record<string, string> = {
+    finance: "+966536107050",
+    "Fayad Adel": "+966508089930",
+    "Mohammed Ayed": "+966505940265",
+    "Sultan Ibrahim": "+966551647115",
+    "E.khatib": "+966543147489",
+    "Imad Abdel Halim": "+966556041887",
+  };
 import "./DashboardBubbles.css";
 import AccountTypePicker, { AccountType } from "./AccountTypePicker";
 import FinanceApprovalBar from "@/components/POManagement/FinanceApprovalBar";
@@ -32,11 +42,35 @@ const Index = () => {
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   useEffect(() => {
     const saved = localStorage.getItem("accountType");
-    if (saved === "hr" || saved === "finance") setAccountType(saved);
+    // Recognize all account types
+    if (["hr", "finance", "engineers", "project_management"].includes(saved)) {
+      setAccountType(saved as AccountType);
+    }
   }, []);
+  // OTP modal state
+  const [pendingAccountType, setPendingAccountType] = useState<AccountType | null>(null);
+  const [pendingUserName, setPendingUserName] = useState<string>("");
+  const [showOTPPage, setShowOTPPage] = useState(false);
+
   const handlePickAccountType = (type: AccountType) => {
-    setAccountType(type);
-    localStorage.setItem("accountType", type);
+    let userName = "";
+    if (type === "hr") userName = currentHR;
+    else if (type === "engineers") userName = currentEngineer;
+    else if (type === "project_management") userName = currentProjectManager;
+    else if (type === "finance") userName = "Finance";
+    setPendingAccountType(type);
+    setPendingUserName(userName);
+    setShowOTPPage(true);
+  };
+
+  const handleOTPVerified = () => {
+    if (pendingAccountType) {
+      setAccountType(pendingAccountType);
+      localStorage.setItem("accountType", pendingAccountType);
+      setPendingAccountType(null);
+      setPendingUserName("");
+      setShowOTPPage(false);
+    }
   };
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -45,7 +79,7 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  
+  //today: understand the refunctionality of the PO multi-select features for the cells (the Table PO)
   // Load POs from Supabase
   useEffect(() => {
     fetchAllPOsFromSupabase()
@@ -217,10 +251,13 @@ const Index = () => {
   };
 
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
+  // HR, Engineers, and Project Management account names
   const hrNames = ["Fayad Adel", "Mohammed Ayed", "Sultan Ibrahim"];
   const engineerNames = ["E.khatib"];
+  const projectManagementNames = ["Imad Abdel Halim"];
   const currentHR = localStorage.getItem('hrName') || hrNames[0];
   const currentEngineer = localStorage.getItem('engineerName') || engineerNames[0];
+  const currentProjectManager = localStorage.getItem('projectManagerName') || projectManagementNames[0];
 
   // Always call hooks before any return
 
@@ -228,6 +265,8 @@ const Index = () => {
   const shouldShowAccountPicker = !accountType;
   // Finance: restrict PO creation, show approve/decline bar
   const isFinance = accountType === "finance";
+  // Project Management: same dashboard as engineers
+  const isProjectManagement = accountType === "project_management";
   // Approval loading state
   const [approvalLoading, setApprovalLoading] = useState<string | null>(null);
   // Approve handler for ApprovalsTable
@@ -261,7 +300,23 @@ const Index = () => {
       toast({ title: "Error", description: "Failed to sign. Please try again.", variant: "destructive" });
     }
   };
-  if (shouldShowAccountPicker) {
+  if (shouldShowAccountPicker || showOTPPage) {
+    if (showOTPPage && pendingAccountType) {
+      // Get phone number for the pending account
+      let phone = "";
+      if (pendingAccountType === "finance") phone = accountPhoneNumbers["finance"];
+      else if (pendingAccountType === "hr") phone = accountPhoneNumbers[currentHR] || "";
+      else if (pendingAccountType === "engineers") phone = accountPhoneNumbers[currentEngineer] || "";
+      else if (pendingAccountType === "project_management") phone = accountPhoneNumbers[currentProjectManager] || "";
+      return (
+        <OTPVerificationPage
+          userName={pendingUserName}
+          phoneNumber={phone}
+          onVerified={handleOTPVerified}
+          onCancel={() => { setShowOTPPage(false); setPendingAccountType(null); setPendingUserName(""); }}
+        />
+      );
+    }
     return <AccountTypePicker onPick={handlePickAccountType} />;
   }
 
@@ -322,7 +377,13 @@ const Index = () => {
             >
               <User className="h-5 w-5 text-gray-600" />
               <span className="font-medium text-gray-700">
-                {accountType === 'hr' ? currentHR : accountType === 'engineers' ? currentEngineer : 'Finance'}
+                {accountType === 'hr'
+                  ? currentHR
+                  : accountType === 'engineers'
+                  ? currentEngineer
+                  : accountType === 'project_management'
+                  ? currentProjectManager
+                  : 'Finance'}
               </span>
             </button>
             {/* Switch account dialog */}
@@ -335,8 +396,9 @@ const Index = () => {
                   <Button
                     variant={accountType === 'finance' ? 'default' : 'outline'}
                     onClick={() => {
-                      setAccountType('finance');
-                      localStorage.setItem('accountType', 'finance');
+                      setPendingAccountType('finance');
+                      setPendingUserName('Finance');
+                      setShowOTPPage(true);
                       setSwitchDialogOpen(false);
                     }}
                   >
@@ -348,9 +410,10 @@ const Index = () => {
                       key={name}
                       variant={accountType === 'hr' && currentHR === name ? 'default' : 'outline'}
                       onClick={() => {
-                        setAccountType('hr');
-                        localStorage.setItem('accountType', 'hr');
+                        setPendingAccountType('hr');
                         localStorage.setItem('hrName', name);
+                        setPendingUserName(name);
+                        setShowOTPPage(true);
                         setSwitchDialogOpen(false);
                       }}
                     >
@@ -363,9 +426,26 @@ const Index = () => {
                       key={name}
                       variant={accountType === 'engineers' && currentEngineer === name ? 'default' : 'outline'}
                       onClick={() => {
-                        setAccountType('engineers');
-                        localStorage.setItem('accountType', 'engineers');
+                        setPendingAccountType('engineers');
                         localStorage.setItem('engineerName', name);
+                        setPendingUserName(name);
+                        setShowOTPPage(true);
+                        setSwitchDialogOpen(false);
+                      }}
+                    >
+                      {name}
+                    </Button>
+                  ))}
+                  <div className="text-xs text-muted-foreground mt-2 mb-1">Project Management</div>
+                  {projectManagementNames.map(name => (
+                    <Button
+                      key={name}
+                      variant={accountType === 'project_management' && currentProjectManager === name ? 'default' : 'outline'}
+                      onClick={() => {
+                        setPendingAccountType('project_management');
+                        localStorage.setItem('projectManagerName', name);
+                        setPendingUserName(name);
+                        setShowOTPPage(true);
                         setSwitchDialogOpen(false);
                       }}
                     >
@@ -584,7 +664,14 @@ const Index = () => {
 
         {/* Approvals Table Section (closeable, below PO grid) */}
         <div className="mt-10">
-          <CloseableApprovalsSection pos={pos} accountType={accountType} currentHR={currentHR} currentEngineer={currentEngineer} onApprove={handlePOApproval} />
+          <CloseableApprovalsSection
+            pos={pos}
+            accountType={accountType}
+            currentHR={currentHR}
+            currentEngineer={currentEngineer}
+            currentProjectManager={currentProjectManager}
+            onApprove={handlePOApproval}
+          />
         </div>
       </div>
     </div>
