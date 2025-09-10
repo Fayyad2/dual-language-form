@@ -1,0 +1,66 @@
+Supabase Table Design and Logging Plan
+=====================================
+IMPORTANT. Current Login Method (Summary)
+
+    The app currently uses OTP (One-Time Password) for login.
+
+    Users:
+
+* select their account by name (already made accounts) from a pop up
+
+* Receive and verify an OTP
+
+* On first visit, users select their account type (e.g., HR, Finance).
+
+* This is stored in localStorage (not in the database).
+
+* No persistent user table in Supabase.
+
+* No usernames or passwords are stored.
+
+-- What We Want --
+* A Supabase table for users: stores username, password (hashed), account type, and phone number.
+* A normal login page (username/password) instead of OTP.
+* An admin dashboard that logs all actions (login, create, delete, etc.) for auditing.
+
+
+And we are going to start with the A
+Details: 
+
+1. users table
+--------------
+- id (UUID, PK)
+- username (text, unique)
+- password_hash (text, store hashed password)
+- account_type (enum: HR, Finance, Engineers, Project Management)
+- phone_number (text, unique)
+- created_at (timestamp, default now())
+
+2. logs table
+-------------
+- id (UUID, PK)
+- user_id (UUID, FK to users)
+- action (text, e.g., 'login', 'create', 'delete', etc.)
+- target (text, e.g., 'PO', 'User', etc.)
+- target_id (text, e.g., PO id or user id)
+- details (JSON, optional extra info)
+- timestamp (timestamp, default now())
+
+Implementation Roadmap
+======================
+1. Create the Supabase tables (users, logs).
+2. Build registration and login pages:
+   - Registration: username, password, account type, phone number.
+   - Login: username + password (with password hashing/validation).
+3. Update app to use Supabase authentication:
+   - On login, fetch user info and account type from Supabase.
+   - Remove localStorage account type logic.
+4. Log all actions:
+   - On every create, delete, or login, insert a row into the logs table.
+   - Build an admin dashboard to view/filter logs.
+
+Security Notes
+==============
+- Always hash passwords (never store plain text).
+- Use Supabase Row Level Security (RLS) to restrict access to logs and user data.
+- Only admins should see the logs dashboard.
