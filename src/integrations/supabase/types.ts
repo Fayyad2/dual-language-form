@@ -14,131 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      form_submissions: {
+      pos: {
         Row: {
-          created_at: string
-          form_data: Json
+          "Ayed Approval": boolean | null
+          creator: string | null
+          customFields: Json | null
+          date: string | null
+          department: string | null
+          "E.khatib Approval": boolean | null
+          "Fayad Approval": boolean | null
+          "Finance Approval": boolean | null
           id: string
+          Imad_approval: boolean | null
+          location: string | null
+          meta: string | null
+          poNumber: string
+          purposeEnglish: string | null
           status: string | null
-          submitted_by: string | null
-          template_id: string
+          "Sultan Approval": boolean | null
+          "Transaction number": string | null
         }
         Insert: {
-          created_at?: string
-          form_data: Json
-          id?: string
-          status?: string | null
-          submitted_by?: string | null
-          template_id: string
-        }
-        Update: {
-          created_at?: string
-          form_data?: Json
-          id?: string
-          status?: string | null
-          submitted_by?: string | null
-          template_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "form_submissions_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "form_templates"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      form_templates: {
-        Row: {
-          created_at: string
-          description: string | null
+          "Ayed Approval"?: boolean | null
+          creator?: string | null
+          customFields?: Json | null
+          date?: string | null
+          department?: string | null
+          "E.khatib Approval"?: boolean | null
+          "Fayad Approval"?: boolean | null
+          "Finance Approval"?: boolean | null
           id: string
-          name: string
-          type: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          id?: string
-          name: string
-          type: string
-          updated_at?: string
+          Imad_approval?: boolean | null
+          location?: string | null
+          meta?: string | null
+          poNumber: string
+          purposeEnglish?: string | null
+          status?: string | null
+          "Sultan Approval"?: boolean | null
+          "Transaction number"?: string | null
         }
         Update: {
-          created_at?: string
-          description?: string | null
+          "Ayed Approval"?: boolean | null
+          creator?: string | null
+          customFields?: Json | null
+          date?: string | null
+          department?: string | null
+          "E.khatib Approval"?: boolean | null
+          "Fayad Approval"?: boolean | null
+          "Finance Approval"?: boolean | null
           id?: string
-          name?: string
-          type?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      payment_orders: {
-        Row: {
-          amount: number
-          applied_this_time: number | null
-          approvals: Json | null
-          bank_name: string | null
-          beneficiary_name: string
-          cost_center: string | null
-          created_at: string
-          date_issued: string
-          id: string
-          left_over: number | null
-          location: string
-          payment_method: string | null
-          payment_type: string | null
-          po_number: string | null
-          purpose: string
-          time_to_deliver: string | null
-          total_budget: number | null
-          total_consumed: number | null
-          updated_at: string
-        }
-        Insert: {
-          amount: number
-          applied_this_time?: number | null
-          approvals?: Json | null
-          bank_name?: string | null
-          beneficiary_name: string
-          cost_center?: string | null
-          created_at?: string
-          date_issued: string
-          id?: string
-          left_over?: number | null
-          location: string
-          payment_method?: string | null
-          payment_type?: string | null
-          po_number?: string | null
-          purpose: string
-          time_to_deliver?: string | null
-          total_budget?: number | null
-          total_consumed?: number | null
-          updated_at?: string
-        }
-        Update: {
-          amount?: number
-          applied_this_time?: number | null
-          approvals?: Json | null
-          bank_name?: string | null
-          beneficiary_name?: string
-          cost_center?: string | null
-          created_at?: string
-          date_issued?: string
-          id?: string
-          left_over?: number | null
-          location?: string
-          payment_method?: string | null
-          payment_type?: string | null
-          po_number?: string | null
-          purpose?: string
-          time_to_deliver?: string | null
-          total_budget?: number | null
-          total_consumed?: number | null
-          updated_at?: string
+          Imad_approval?: boolean | null
+          location?: string | null
+          meta?: string | null
+          poNumber?: string
+          purposeEnglish?: string | null
+          status?: string | null
+          "Sultan Approval"?: boolean | null
+          "Transaction number"?: string | null
         }
         Relationships: []
       }
