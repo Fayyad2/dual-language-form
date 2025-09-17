@@ -7,10 +7,11 @@ interface CloseableApprovalsSectionProps {
   accountType: string;
   currentHR: string;
   currentEngineer: string;
+  currentProjectManager?: string;
   onApprove: (poId: string, approver: string) => void;
 }
 
-export function CloseableApprovalsSection({ pos, accountType, currentHR, currentEngineer, onApprove }: CloseableApprovalsSectionProps) {
+export function CloseableApprovalsSection({ pos, accountType, currentHR, currentEngineer, currentProjectManager, onApprove }: CloseableApprovalsSectionProps) {
   const [open, setOpen] = React.useState(true);
   const [search, setSearch] = React.useState("");
 

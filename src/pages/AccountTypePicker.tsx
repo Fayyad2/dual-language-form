@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 
-export type AccountType = "hr" | "finance" | "ceo" | "project_manager";
+export type AccountType = "hr" | "finance" | "ceo" | "project_manager" | "engineers" | "project_management";
 
 import { useState } from "react";
 

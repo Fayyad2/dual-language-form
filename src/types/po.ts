@@ -19,7 +19,7 @@ export interface POData {
   leftOver: string;
   customFields: { [key: string]: string };
   tags: string[];
-  status: 'draft' | 'pending' | 'approved' | 'completed' | 'declined' | 'review';
+  status: 'draft' | 'pending' | 'approved' | 'completed' | 'declined' | 'review' | 'approved by finance';
   creator?: string;
   meta?: string;
   fayad_approval: boolean;
