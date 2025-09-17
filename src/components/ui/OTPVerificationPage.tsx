@@ -17,6 +17,10 @@ const OTPVerificationPage: React.FC<OTPVerificationPageProps> = ({ userName, pho
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   const handleSendOTP = async () => {
+    if (!phoneNumber) {
+      setError("No phone number available for this account. Please contact admin.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {

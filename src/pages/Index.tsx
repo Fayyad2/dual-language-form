@@ -38,6 +38,8 @@ import { exportPOsToExcel } from "@/utils/excelExport";
 import { Loader } from '@/components/ui/loader';
 
 const Index = () => {
+  // OTP bypass toggle
+  const [bypassOtp, setBypassOtp] = useState<boolean>(false);
   // Account type logic
   const [accountType, setAccountType] = useState<AccountType | null>(null);
   useEffect(() => {
@@ -58,9 +60,17 @@ const Index = () => {
     else if (type === "engineers") userName = currentEngineer;
     else if (type === "project_management") userName = currentProjectManager;
     else if (type === "finance") userName = "Finance";
-    setPendingAccountType(type);
-    setPendingUserName(userName);
-    setShowOTPPage(true);
+    if (bypassOtp) {
+      setAccountType(type);
+      localStorage.setItem("accountType", type);
+      setPendingAccountType(null);
+      setPendingUserName("");
+      setShowOTPPage(false);
+    } else {
+      setPendingAccountType(type);
+      setPendingUserName(userName);
+      setShowOTPPage(true);
+    }
   };
 
   const handleOTPVerified = () => {
@@ -317,7 +327,22 @@ const Index = () => {
         />
       );
     }
-    return <AccountTypePicker onPick={handlePickAccountType} />;
+    return (
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+          <label style={{ marginRight: 8 }}>
+            <input
+              type="checkbox"
+              checked={bypassOtp}
+              onChange={e => setBypassOtp(e.target.checked)}
+              style={{ marginRight: 4 }}
+            />
+            Bypass OTP (dev mode)
+          </label>
+        </div>
+        <AccountTypePicker onPick={handlePickAccountType} />
+      </div>
+    );
   }
 
   return (
@@ -396,10 +421,19 @@ const Index = () => {
                   <Button
                     variant={accountType === 'finance' ? 'default' : 'outline'}
                     onClick={() => {
-                      setPendingAccountType('finance');
-                      setPendingUserName('Finance');
-                      setShowOTPPage(true);
-                      setSwitchDialogOpen(false);
+                      if (bypassOtp) {
+                        setAccountType('finance');
+                        localStorage.setItem('accountType', 'finance');
+                        setPendingAccountType(null);
+                        setPendingUserName('');
+                        setShowOTPPage(false);
+                        setSwitchDialogOpen(false);
+                      } else {
+                        setPendingAccountType('finance');
+                        setPendingUserName('Finance');
+                        setShowOTPPage(true);
+                        setSwitchDialogOpen(false);
+                      }
                     }}
                   >
                     Finance
@@ -410,11 +444,21 @@ const Index = () => {
                       key={name}
                       variant={accountType === 'hr' && currentHR === name ? 'default' : 'outline'}
                       onClick={() => {
-                        setPendingAccountType('hr');
-                        localStorage.setItem('hrName', name);
-                        setPendingUserName(name);
-                        setShowOTPPage(true);
-                        setSwitchDialogOpen(false);
+                        if (bypassOtp) {
+                          setAccountType('hr');
+                          localStorage.setItem('accountType', 'hr');
+                          localStorage.setItem('hrName', name);
+                          setPendingAccountType(null);
+                          setPendingUserName('');
+                          setShowOTPPage(false);
+                          setSwitchDialogOpen(false);
+                        } else {
+                          setPendingAccountType('hr');
+                          localStorage.setItem('hrName', name);
+                          setPendingUserName(name);
+                          setShowOTPPage(true);
+                          setSwitchDialogOpen(false);
+                        }
                       }}
                     >
                       {name}
